@@ -1,3 +1,6 @@
+import 'core-js/stable';
+import 'regenerator-runtime/runtime';
+
 // ページ読み込み時にMapboxクラスターインスタンスを作成
 document.addEventListener('DOMContentLoaded', () => {
     let geodata = new Geodata();

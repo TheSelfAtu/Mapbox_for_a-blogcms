@@ -1,3 +1,5 @@
+import 'core-js/stable';
+import 'regenerator-runtime/runtime';
 import { Mymap, MapSize, Geocoder } from "/js/mapboxobjects.js"
 
 // 作成されたインスタンスのユニットIDを保存
