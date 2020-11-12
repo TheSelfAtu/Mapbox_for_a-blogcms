@@ -33,13 +33,6 @@
 
 <table class="acms-admin-table-admin-edit">
   <tr>
-    <th>経度</th>
-    <td>
-      <input id="lng{id}" type="text" name="mapbox-lng{id}" value="{mapbox-lng}" class="acms-admin-form-width-full" />
-      <input type="hidden" name="unit{id}[]" value="mapbox-lng{id}" />
-    </td>
-  </tr>
-  <tr>
     <th>緯度</th>
     <td>
       <input id="lat{id}" type="text" name="mapbox-lat{id}" value="{mapbox-lat}" class="acms-admin-form-width-full" />
@@ -47,6 +40,13 @@
     </td>
   </tr>
   <tr>
+  <tr>
+    <th>経度</th>
+    <td>
+      <input id="lng{id}" type="text" name="mapbox-lng{id}" value="{mapbox-lng}" class="acms-admin-form-width-full" />
+      <input type="hidden" name="unit{id}[]" value="mapbox-lng{id}" />
+    </td>
+  </tr>
     <th>ズーム</th>
     <td>
       <input id="zoom{id}" type="text" name="mapbox-zoom{id}" value="{mapbox-zoom}"

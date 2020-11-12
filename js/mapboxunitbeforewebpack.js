@@ -155,7 +155,6 @@ class ShowUnitMap extends UnitMap {
   // マップユニット作成時のスタイルをセット
   setUsedStyleUrl() {
     const setstyleurl = this.maptag.dataset.setstyleurl;
-    console.log(setstyleurl, 'setstyle ')
     if (setstyleurl != false) {
       this.styleurl = setstyleurl;
     }
@@ -221,24 +220,18 @@ function createUnitMap(unitid) {
   }
   if (mapInformationObj.maptype === 'show') {
     // エントリー詳細画面での処理
-    console.log('unit show')
     const mapunitsize = new MapUnitSize(mapInformationObj);
     const mapbox_map = new ShowUnitMap(mapInformationObj);
   } else if (mapInformationObj.lng != false) {
     // エントリー変更画面での処理
-    console.log('unit exsisted')
     const mapunitsize = new MapUnitSize(mapInformationObj);
     const mapbox_map = new UnitExsistedMap(mapInformationObj);
     const mapbox_geocoder = new Geocoder(mapbox_map);
   } else {
     // エントリー新規作成画面での処理
-    console.log('unit new')
     const mapunitsize = new MapUnitSize(mapInformationObj);
     const mapbox_map = new UnitDefaultMap(mapInformationObj);
     const mapbox_geocoder = new Geocoder(mapbox_map);
 
   }
 }
-
-
-console.log('mapboxunit.js loaded')

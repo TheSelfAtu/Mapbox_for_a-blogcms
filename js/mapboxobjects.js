@@ -27,21 +27,6 @@ export class Mymap {
         this.accesstoken_styleurltag = mapInformationObj.accesstoken_styleurltag;
     }
 
-    // マップの情報表示
-    showMapInformaiton() {
-        console.log('lng', this.lng);
-        console.log('lat', this.lat);
-        console.log('zoom', this.zoom);
-        console.log('pitch', this.pitch);
-        console.log('bearing', this.bearing);
-        console.log('comment', this.comment);
-        console.log('mapsize', this.mapsize);
-        console.log('accesstoken', this.accesstoken);
-        console.log('styleurl', this.styleurl);
-        console.log('maptag', this.maptag);
-        console.log('accesstoken_styleurltag', this.accesstoken_styleurltag);
-        console.log('maptype', this.maptype);
-    }
 
     // インスタンス生成
     instanceMethod() {
@@ -169,41 +154,6 @@ export class MapSize {
         this.mapwrappertag = mapInformationObj.mapwrappertag;
         this.mapsize = mapInformationObj.mapsize;
     }
-
-    // // 管理画面の地図の大きさを変更時に管理画面上の地図の大きさに反映させる
-    // selectMapwrappertagSize() {
-    //   let sizetag = document.getElementById('size' + this.unitid);
-    //   let queryoptions = '#size' + ' option';
-    //   let options = document.querySelectorAll(queryoptions);
-    //   let small = document.getElementById('small');
-    //   let big = document.getElementById('big');
-    //   sizetag.addEventListener("change", () => {
-    //     let index = sizetag.selectedIndex;
-    //     if (options[index].value === 'small') {
-    //       this.changeToSmall();
-    //     } else {
-    //       this.changeToBig();
-    //     }
-    //   });
-    // }
-
-    // changeToSmall() {
-    //   console.log('small');
-    //   this.mapwrappertag.style.maxWidth = '100%'
-    //   this.mapwrappertag.style.width = '400px';
-    //   this.mapwrappertag.style.height = '300px';
-    //   this.maptag.style.width = '400px';
-    //   this.maptag.style.height = '300px';
-    // }
-
-    // changeToBig() {
-    //   console.log('big')
-    //   this.mapwrappertag.style.maxWidth = '100%'
-    //   this.mapwrappertag.style.width = '820px';
-    //   this.mapwrappertag.style.height = '320px';
-    //   this.maptag.style.width = '820px';
-    //   this.maptag.style.height = '320px';
-    // }
 
     setMapwrappertagSize() {
         if (this.mapsize === 'big') {

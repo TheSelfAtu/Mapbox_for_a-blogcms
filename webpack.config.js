@@ -1,4 +1,5 @@
 module.exports = {
+    // mode: 'development',
     mode: 'development',
     target: ['web', 'es5'],
 
@@ -23,7 +24,7 @@ module.exports = {
             }
         ]
     },
-    devtool: 'inline-source-map',
+    // devtool: 'inline-source-map',
     devServer: {
         contentBase: `${__dirname}/dist`,
         port: 8080,
