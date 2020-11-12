@@ -5,8 +5,21 @@ import { Mymap, MapSize, Geocoder } from "/js/mapboxobjects.js"
 // 作成されたインスタンスのユニットIDを保存
 let unitidArray = []
 
+// エントリー詳細画面にてMapboxユニットを表示
+document.addEventListener('DOMContentLoaded', function() {
+  let unitIDtags = document.getElementsByClassName('unitid');
+  Object.keys(unitIDtags).forEach((key) => {
+    let unitid = unitIDtags[key].dataset.unitid;
+    if (unitidArray.indexOf(unitid) === -1) {
+      unitidArray.push(unitid);
+      createUnitMap(unitid);
+    }
+  });
+})
+
 // ユニット追加時にunitidArrayを検索。新規のユニットの場合インスタンス作成
-ACMS.addListener("acmsAddUnit", () => {
+ACMS.addListener("acmsAddUnit", function() {
+  console.log('add unit ')
   let unitIDtags = document.getElementsByClassName('unitid');
   Object.keys(unitIDtags).forEach((key) => {
     let unitid = unitIDtags[key].dataset.unitid;
@@ -17,17 +30,9 @@ ACMS.addListener("acmsAddUnit", () => {
   });
 });
 
-// エントリー詳細画面にてMapboxユニットを表示
-window.addEventListener("load", () => {
-  let unitIDtags = document.getElementsByClassName('unitid');
-  Object.keys(unitIDtags).forEach((key) => {
-    let unitid = unitIDtags[key].dataset.unitid;
-    if (unitidArray.indexOf(unitid) === -1) {
-      unitidArray.push(unitid);
-      createUnitMap(unitid);
-    }
-  });
-});
+
+
+
 
 // エントリー作成・変更画面でのMapboxユニット
 class UnitMap extends Mymap {
