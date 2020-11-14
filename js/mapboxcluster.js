@@ -19,7 +19,7 @@
 /***/ (function(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-eval("__webpack_require__.r(__webpack_exports__);\n/* harmony import */ var core_js_stable__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! core-js/stable */ \"./node_modules/core-js/stable/index.js\");\n/* harmony import */ var core_js_stable__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(core_js_stable__WEBPACK_IMPORTED_MODULE_0__);\n/* harmony import */ var regenerator_runtime_runtime__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! regenerator-runtime/runtime */ \"./node_modules/regenerator-runtime/runtime.js\");\n/* harmony import */ var regenerator_runtime_runtime__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(regenerator_runtime_runtime__WEBPACK_IMPORTED_MODULE_1__);\nfunction _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError(\"Cannot call a class as a function\"); } }\n\nfunction _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if (\"value\" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }\n\nfunction _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }\n\n\n // ページ読み込み時にMapboxクラスターインスタンスを作成\n\ndocument.addEventListener('DOMContentLoaded', function () {\n  var geodata = new Geodata();\n  var mapboxFieldsTags = document.getElementsByClassName('owndata');\n  Object.keys(mapboxFieldsTags).forEach(function (key) {\n    geodata.pushEachFieldData(mapboxFieldsTags[key]);\n    new MapboxCluster(geodata);\n  });\n}); // クラスター作成用のデータを保持するクラス\n\nvar Geodata = /*#__PURE__*/function () {\n  function Geodata() {\n    _classCallCheck(this, Geodata);\n\n    this.featuredata = {\n      \"type\": \"FeatureCollection\",\n      \"crs\": {\n        \"type\": \"name\",\n        \"properties\": {\n          \"name\": \"urn:ogc:def:crs:OGC:1.3:CRS84\"\n        }\n      },\n      \"features\": []\n    };\n  }\n\n  _createClass(Geodata, [{\n    key: \"pushEachFieldData\",\n    value: function pushEachFieldData(mapdata) {\n      var url = mapdata.dataset.url;\n      var title = mapdata.dataset.title;\n      var lng = mapdata.dataset.lng;\n      var lat = mapdata.dataset.lat;\n      var geodata = {\n        \"type\": \"Feature\",\n        \"properties\": {\n          \"url\": url,\n          \"title\": title,\n          \"marker-symbol\": \"default_marker\",\n          \"icon\": 'tw-provincial'\n        },\n        \"geometry\": {\n          \"type\": \"Point\",\n          \"coordinates\": [lng, lat]\n        }\n      };\n      this.featuredata.features.push(geodata);\n    }\n  }]);\n\n  return Geodata;\n}(); // クラスター作成用メソッドを保持するクラス\n\n\nvar MapboxCluster = /*#__PURE__*/function () {\n  function MapboxCluster(geodata) {\n    _classCallCheck(this, MapboxCluster);\n\n    this.geodata = geodata;\n    this.mapboxgl = mapboxgl;\n    this.mapboxgl.accessToken = document.getElementById('accesstoken_styleurl').dataset.accesstoken;\n    this.instancemethod();\n  }\n\n  _createClass(MapboxCluster, [{\n    key: \"instancemethod\",\n    value: function instancemethod() {\n      this.instantiationMap();\n      this.addSource();\n      this.addLayer();\n      this.addPopup();\n      this.addMarkerImage();\n      this.addClickEvent(this.map);\n      this.chagePointer(this.map);\n    } // マップを初期化\n\n  }, {\n    key: \"instantiationMap\",\n    value: function instantiationMap() {\n      this.map = new this.mapboxgl.Map({\n        container: 'fmap',\n        style: document.getElementById('accesstoken_styleurl').dataset.styleurl,\n        center: [135, 35],\n        zoom: 1\n      });\n    } // クラスター表示のための情報を追加する\n\n  }, {\n    key: \"addSource\",\n    value: function addSource() {\n      var _this = this;\n\n      this.map.on('load', function () {\n        // Add a new source from our GeoJSON data and set the\n        // 'cluster' option to true. GL-JS will add the point_count property to your source data.\n        _this.map.addSource('locations', {\n          type: 'geojson',\n          data: _this.geodata.featuredata,\n          cluster: true,\n          clusterMaxZoom: 14,\n          // Max zoom to cluster points on\n          clusterRadius: 50 // Radius of each cluster when clustering points (defaults to 50)\n\n        });\n      });\n    } // クラスター表示のためのレイヤーを追加する\n\n  }, {\n    key: \"addLayer\",\n    value: function addLayer() {\n      var _this2 = this;\n\n      this.map.on('load', function () {\n        // クラスター表示の円のレイヤー\n        _this2.map.addLayer({\n          id: 'clusters',\n          type: 'circle',\n          source: 'locations',\n          filter: ['has', 'point_count'],\n          paint: {\n            // Use step expressions (https://docs.mapbox.com/mapbox-gl-js/style-spec/#expressions-step)\n            // with three steps to implement three types of circles:\n            //   * Blue, 20px circles when point count is less than 100\n            //   * Yellow, 30px circles when point count is between 100 and 750\n            //   * Pink, 40px circles when point count is greater than or equal to 750\n            'circle-color': ['step', ['get', 'point_count'], '#51bbd6', 100, '#f1f075', 750, '#f28cb1'],\n            'circle-radius': ['step', ['get', 'point_count'], 20, 100, 30, 750, 40]\n          }\n        }); // クラスターに表示される数字のレイヤー\n\n\n        _this2.map.addLayer({\n          id: 'cluster-count',\n          type: 'symbol',\n          source: 'locations',\n          filter: ['has', 'point_count'],\n          layout: {\n            'text-field': '{point_count_abbreviated}',\n            'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],\n            'text-size': 12\n          }\n        }); // クラスターでなくマーカーの表現\n\n\n        _this2.map.addLayer({\n          id: 'unclustered-point',\n          type: 'symbol',\n          // type: 'circle',\n          source: 'locations',\n          filter: ['!', ['has', 'point_count']],\n          // paint: {\n          //     // 'circle-color': '#ffffff',\n          //     'circle-color': '#11b4da',\n          //     'circle-radius': 4,\n          //     'circle-stroke-width': 1,\n          //     'circle-stroke-color': '#fff'\n          // }\n          \"layout\": {\n            \"icon-image\": \"map_marker\",\n            // 'icon-image': '{icon}-2',\n            // \"icon-image\": \"cat\",\n            'icon-size': 0.5,\n            'icon-allow-overlap': true\n          }\n        });\n      });\n    } // ポップアップを追加\n\n  }, {\n    key: \"addPopup\",\n    value: function addPopup() {\n      var _this3 = this;\n\n      // When a click event occurs on a feature in the places layer, open a popup at the\n      // location of the feature, with description HTML from its properties.\n      this.map.on('click', 'unclustered-point', function (e) {\n        var coordinates = e.features[0].geometry.coordinates.slice();\n        var message = '<a href=' + e.features[0].properties.url + '>' + e.features[0].properties.title + '</a>'; // Ensure that if the map is zoomed out such that multiple\n        // copies of the feature are visible, the popup appears\n        // over the copy being pointed to.\n\n        while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {\n          coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;\n        }\n\n        new _this3.mapboxgl.Popup().setLngLat(coordinates).setHTML(message).addTo(_this3.map);\n      });\n    }\n  }, {\n    key: \"addMarkerImage\",\n    value: function addMarkerImage() {\n      var _this4 = this;\n\n      this.map.on('load', function () {\n        _this4.map.loadImage('https://docs.mapbox.com/mapbox-gl-js/assets/custom_marker.png', function (error, image) {\n          if (error) throw error;\n\n          _this4.map.addImage('map_marker', image);\n        });\n      });\n    }\n  }, {\n    key: \"addClickEvent\",\n    value: function addClickEvent(map) {\n      // inspect a cluster on click\n      map.on('click', 'clusters', function (e) {\n        var features = map.queryRenderedFeatures(e.point, {\n          layers: ['clusters']\n        });\n        var clusterId = features[0].properties.cluster_id;\n        map.getSource('locations').getClusterExpansionZoom(clusterId, function (err, zoom) {\n          if (err) return;\n          map.easeTo({\n            center: features[0].geometry.coordinates,\n            zoom: zoom\n          });\n        });\n      });\n    } // クラスターの円にマウスを合わせた際にマウスの形が変化\n\n  }, {\n    key: \"chagePointer\",\n    value: function chagePointer(map) {\n      map.on('mouseenter', 'clusters', function () {\n        map.getCanvas().style.cursor = 'pointer';\n      });\n      map.on('mouseleave', 'clusters', function () {\n        map.getCanvas().style.cursor = '';\n      });\n    }\n  }]);\n\n  return MapboxCluster;\n}();\n\n//# sourceURL=webpack://beginner2020/./js/mapboxclusterbeforewebpack.js?");
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony import */ var core_js_stable__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! core-js/stable */ \"./node_modules/core-js/stable/index.js\");\n/* harmony import */ var core_js_stable__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(core_js_stable__WEBPACK_IMPORTED_MODULE_0__);\n/* harmony import */ var regenerator_runtime_runtime__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! regenerator-runtime/runtime */ \"./node_modules/regenerator-runtime/runtime.js\");\n/* harmony import */ var regenerator_runtime_runtime__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(regenerator_runtime_runtime__WEBPACK_IMPORTED_MODULE_1__);\nfunction _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError(\"Cannot call a class as a function\"); } }\n\nfunction _defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if (\"value\" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }\n\nfunction _createClass(Constructor, protoProps, staticProps) { if (protoProps) _defineProperties(Constructor.prototype, protoProps); if (staticProps) _defineProperties(Constructor, staticProps); return Constructor; }\n\n\n // ページ読み込み時にMapboxクラスターインスタンスを作成\n\ndocument.addEventListener('DOMContentLoaded', function () {\n  var geodata = new Geodata();\n  var mapboxFieldsTags = document.getElementsByClassName('owndata');\n  Object.keys(mapboxFieldsTags).forEach(function (key) {\n    geodata.pushEachFieldData(mapboxFieldsTags[key]);\n    new MapboxCluster(geodata);\n  });\n}); // クラスター作成用のデータを保持するクラス\n\nvar Geodata = /*#__PURE__*/function () {\n  function Geodata() {\n    _classCallCheck(this, Geodata);\n\n    this.featuredata = {\n      \"type\": \"FeatureCollection\",\n      \"crs\": {\n        \"type\": \"name\",\n        \"properties\": {\n          \"name\": \"urn:ogc:def:crs:OGC:1.3:CRS84\"\n        }\n      },\n      \"features\": []\n    };\n  }\n\n  _createClass(Geodata, [{\n    key: \"pushEachFieldData\",\n    value: function pushEachFieldData(mapdata) {\n      var url = mapdata.dataset.url;\n      var title = mapdata.dataset.title;\n      var lng = mapdata.dataset.lng;\n      var lat = mapdata.dataset.lat;\n      var geodata = {\n        \"type\": \"Feature\",\n        \"properties\": {\n          \"url\": url,\n          \"title\": title,\n          \"marker-symbol\": \"default_marker\",\n          \"icon\": 'tw-provincial'\n        },\n        \"geometry\": {\n          \"type\": \"Point\",\n          \"coordinates\": [lng, lat]\n        }\n      };\n      this.featuredata.features.push(geodata);\n    }\n  }]);\n\n  return Geodata;\n}(); // クラスター作成用メソッドを保持するクラス\n\n\nvar MapboxCluster = /*#__PURE__*/function () {\n  function MapboxCluster(geodata) {\n    _classCallCheck(this, MapboxCluster);\n\n    this.geodata = geodata;\n    this.mapboxgl = mapboxgl;\n    this.mapboxgl.accessToken = document.getElementById('accesstoken_styleurl').dataset.accesstoken;\n    this.instancemethod();\n  }\n\n  _createClass(MapboxCluster, [{\n    key: \"instancemethod\",\n    value: function instancemethod() {\n      this.instantiationMap();\n      this.addSource();\n      this.addLayer();\n      this.addPopup();\n      this.addMarkerImage();\n      this.addClickEvent(this.map);\n      this.chagePointer(this.map);\n    } // マップを初期化\n\n  }, {\n    key: \"instantiationMap\",\n    value: function instantiationMap() {\n      this.map = new this.mapboxgl.Map({\n        container: 'fmap',\n        style: document.getElementById('accesstoken_styleurl').dataset.styleurl,\n        center: [135, 35],\n        zoom: 1\n      });\n    } // クラスター表示のための情報を追加する\n\n  }, {\n    key: \"addSource\",\n    value: function addSource() {\n      var _this = this;\n\n      this.map.on('load', function () {\n        // Add a new source from our GeoJSON data and set the\n        // 'cluster' option to true. GL-JS will add the point_count property to your source data.\n        _this.map.addSource('locations', {\n          type: 'geojson',\n          data: _this.geodata.featuredata,\n          cluster: true,\n          clusterMaxZoom: 14,\n          // Max zoom to cluster points on\n          clusterRadius: 50 // Radius of each cluster when clustering points (defaults to 50)\n\n        });\n      });\n    } // クラスター表示のためのレイヤーを追加する\n\n  }, {\n    key: \"addLayer\",\n    value: function addLayer() {\n      var _this2 = this;\n\n      this.map.on('load', function () {\n        // クラスター表示の円のレイヤー\n        _this2.map.addLayer({\n          id: 'clusters',\n          type: 'circle',\n          source: 'locations',\n          filter: ['has', 'point_count'],\n          paint: {\n            // Use step expressions (https://docs.mapbox.com/mapbox-gl-js/style-spec/#expressions-step)\n            // with three steps to implement three types of circles:\n            //   * Blue, 20px circles when point count is less than 5\n            //   * Yellow, 30px circles when point count is between 5 and 750\n            //   * Pink, 40px circles when point count is greater than or equal to 750\n            'circle-color': ['step', ['get', 'point_count'], '#51bbd6', 5, '#f1f075', 750, '#f28cb1'],\n            'circle-radius': ['step', ['get', 'point_count'], 15, 5, 20, 750, 40]\n          }\n        }); // クラスターに表示される数字のレイヤー\n\n\n        _this2.map.addLayer({\n          id: 'cluster-count',\n          type: 'symbol',\n          source: 'locations',\n          filter: ['has', 'point_count'],\n          layout: {\n            'text-field': '{point_count_abbreviated}',\n            'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],\n            'text-size': 12\n          }\n        }); // クラスターでなくマーカーの表現\n\n\n        _this2.map.addLayer({\n          id: 'unclustered-point',\n          type: 'symbol',\n          source: 'locations',\n          filter: ['!', ['has', 'point_count']],\n          \"layout\": {\n            \"icon-image\": \"map_marker\",\n            'icon-size': 0.5,\n            'icon-allow-overlap': true\n          }\n        });\n      });\n    } // ポップアップを追加\n\n  }, {\n    key: \"addPopup\",\n    value: function addPopup() {\n      var _this3 = this;\n\n      // When a click event occurs on a feature in the places layer, open a popup at the\n      // location of the feature, with description HTML from its properties.\n      this.map.on('click', 'unclustered-point', function (e) {\n        var coordinates = e.features[0].geometry.coordinates.slice();\n        var message = '<a href=' + e.features[0].properties.url + '>' + e.features[0].properties.title + '</a>'; // Ensure that if the map is zoomed out such that multiple\n        // copies of the feature are visible, the popup appears\n        // over the copy being pointed to.\n\n        while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {\n          coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;\n        }\n\n        new _this3.mapboxgl.Popup().setLngLat(coordinates).setHTML(message).addTo(_this3.map);\n      });\n    }\n  }, {\n    key: \"addMarkerImage\",\n    value: function addMarkerImage() {\n      var _this4 = this;\n\n      this.map.on('load', function () {\n        _this4.map.loadImage('https://docs.mapbox.com/mapbox-gl-js/assets/custom_marker.png', function (error, image) {\n          if (error) throw error;\n\n          _this4.map.addImage('map_marker', image);\n        });\n      });\n    } // クラスターをクリックしたときのイベントを追加\n\n  }, {\n    key: \"addClickEvent\",\n    value: function addClickEvent(map) {\n      // inspect a cluster on click\n      map.on('click', 'clusters', function (e) {\n        var features = map.queryRenderedFeatures(e.point, {\n          layers: ['clusters']\n        });\n        var clusterId = features[0].properties.cluster_id;\n        map.getSource('locations').getClusterExpansionZoom(clusterId, function (err, zoom) {\n          if (err) return;\n          map.easeTo({\n            center: features[0].geometry.coordinates,\n            zoom: zoom\n          });\n        });\n      });\n    } // クラスターの円にマウスを合わせた際にマウスの形が変化\n\n  }, {\n    key: \"chagePointer\",\n    value: function chagePointer(map) {\n      map.on('mouseenter', 'clusters', function () {\n        map.getCanvas().style.cursor = 'pointer';\n      });\n      map.on('mouseleave', 'clusters', function () {\n        map.getCanvas().style.cursor = '';\n      });\n    }\n  }]);\n\n  return MapboxCluster;\n}();\n\n//# sourceURL=webpack://beginner2020/./js/mapboxclusterbeforewebpack.js?");
 
 /***/ }),
 
@@ -29,7 +29,6 @@ eval("__webpack_require__.r(__webpack_exports__);\n/* harmony import */ var core
   \******************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 210:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("__webpack_require__(/*! ../modules/es.symbol */ \"./node_modules/core-js/modules/es.symbol.js\");\n__webpack_require__(/*! ../modules/es.symbol.async-iterator */ \"./node_modules/core-js/modules/es.symbol.async-iterator.js\");\n__webpack_require__(/*! ../modules/es.symbol.description */ \"./node_modules/core-js/modules/es.symbol.description.js\");\n__webpack_require__(/*! ../modules/es.symbol.has-instance */ \"./node_modules/core-js/modules/es.symbol.has-instance.js\");\n__webpack_require__(/*! ../modules/es.symbol.is-concat-spreadable */ \"./node_modules/core-js/modules/es.symbol.is-concat-spreadable.js\");\n__webpack_require__(/*! ../modules/es.symbol.iterator */ \"./node_modules/core-js/modules/es.symbol.iterator.js\");\n__webpack_require__(/*! ../modules/es.symbol.match */ \"./node_modules/core-js/modules/es.symbol.match.js\");\n__webpack_require__(/*! ../modules/es.symbol.match-all */ \"./node_modules/core-js/modules/es.symbol.match-all.js\");\n__webpack_require__(/*! ../modules/es.symbol.replace */ \"./node_modules/core-js/modules/es.symbol.replace.js\");\n__webpack_require__(/*! ../modules/es.symbol.search */ \"./node_modules/core-js/modules/es.symbol.search.js\");\n__webpack_require__(/*! ../modules/es.symbol.species */ \"./node_modules/core-js/modules/es.symbol.species.js\");\n__webpack_require__(/*! ../modules/es.symbol.split */ \"./node_modules/core-js/modules/es.symbol.split.js\");\n__webpack_require__(/*! ../modules/es.symbol.to-primitive */ \"./node_modules/core-js/modules/es.symbol.to-primitive.js\");\n__webpack_require__(/*! ../modules/es.symbol.to-string-tag */ \"./node_modules/core-js/modules/es.symbol.to-string-tag.js\");\n__webpack_require__(/*! ../modules/es.symbol.unscopables */ \"./node_modules/core-js/modules/es.symbol.unscopables.js\");\n__webpack_require__(/*! ../modules/es.object.assign */ \"./node_modules/core-js/modules/es.object.assign.js\");\n__webpack_require__(/*! ../modules/es.object.create */ \"./node_modules/core-js/modules/es.object.create.js\");\n__webpack_require__(/*! ../modules/es.object.define-property */ \"./node_modules/core-js/modules/es.object.define-property.js\");\n__webpack_require__(/*! ../modules/es.object.define-properties */ \"./node_modules/core-js/modules/es.object.define-properties.js\");\n__webpack_require__(/*! ../modules/es.object.entries */ \"./node_modules/core-js/modules/es.object.entries.js\");\n__webpack_require__(/*! ../modules/es.object.freeze */ \"./node_modules/core-js/modules/es.object.freeze.js\");\n__webpack_require__(/*! ../modules/es.object.from-entries */ \"./node_modules/core-js/modules/es.object.from-entries.js\");\n__webpack_require__(/*! ../modules/es.object.get-own-property-descriptor */ \"./node_modules/core-js/modules/es.object.get-own-property-descriptor.js\");\n__webpack_require__(/*! ../modules/es.object.get-own-property-descriptors */ \"./node_modules/core-js/modules/es.object.get-own-property-descriptors.js\");\n__webpack_require__(/*! ../modules/es.object.get-own-property-names */ \"./node_modules/core-js/modules/es.object.get-own-property-names.js\");\n__webpack_require__(/*! ../modules/es.object.get-prototype-of */ \"./node_modules/core-js/modules/es.object.get-prototype-of.js\");\n__webpack_require__(/*! ../modules/es.object.is */ \"./node_modules/core-js/modules/es.object.is.js\");\n__webpack_require__(/*! ../modules/es.object.is-extensible */ \"./node_modules/core-js/modules/es.object.is-extensible.js\");\n__webpack_require__(/*! ../modules/es.object.is-frozen */ \"./node_modules/core-js/modules/es.object.is-frozen.js\");\n__webpack_require__(/*! ../modules/es.object.is-sealed */ \"./node_modules/core-js/modules/es.object.is-sealed.js\");\n__webpack_require__(/*! ../modules/es.object.keys */ \"./node_modules/core-js/modules/es.object.keys.js\");\n__webpack_require__(/*! ../modules/es.object.prevent-extensions */ \"./node_modules/core-js/modules/es.object.prevent-extensions.js\");\n__webpack_require__(/*! ../modules/es.object.seal */ \"./node_modules/core-js/modules/es.object.seal.js\");\n__webpack_require__(/*! ../modules/es.object.set-prototype-of */ \"./node_modules/core-js/modules/es.object.set-prototype-of.js\");\n__webpack_require__(/*! ../modules/es.object.values */ \"./node_modules/core-js/modules/es.object.values.js\");\n__webpack_require__(/*! ../modules/es.object.to-string */ \"./node_modules/core-js/modules/es.object.to-string.js\");\n__webpack_require__(/*! ../modules/es.object.define-getter */ \"./node_modules/core-js/modules/es.object.define-getter.js\");\n__webpack_require__(/*! ../modules/es.object.define-setter */ \"./node_modules/core-js/modules/es.object.define-setter.js\");\n__webpack_require__(/*! ../modules/es.object.lookup-getter */ \"./node_modules/core-js/modules/es.object.lookup-getter.js\");\n__webpack_require__(/*! ../modules/es.object.lookup-setter */ \"./node_modules/core-js/modules/es.object.lookup-setter.js\");\n__webpack_require__(/*! ../modules/es.function.bind */ \"./node_modules/core-js/modules/es.function.bind.js\");\n__webpack_require__(/*! ../modules/es.function.name */ \"./node_modules/core-js/modules/es.function.name.js\");\n__webpack_require__(/*! ../modules/es.function.has-instance */ \"./node_modules/core-js/modules/es.function.has-instance.js\");\n__webpack_require__(/*! ../modules/es.global-this */ \"./node_modules/core-js/modules/es.global-this.js\");\n__webpack_require__(/*! ../modules/es.array.from */ \"./node_modules/core-js/modules/es.array.from.js\");\n__webpack_require__(/*! ../modules/es.array.is-array */ \"./node_modules/core-js/modules/es.array.is-array.js\");\n__webpack_require__(/*! ../modules/es.array.of */ \"./node_modules/core-js/modules/es.array.of.js\");\n__webpack_require__(/*! ../modules/es.array.concat */ \"./node_modules/core-js/modules/es.array.concat.js\");\n__webpack_require__(/*! ../modules/es.array.copy-within */ \"./node_modules/core-js/modules/es.array.copy-within.js\");\n__webpack_require__(/*! ../modules/es.array.every */ \"./node_modules/core-js/modules/es.array.every.js\");\n__webpack_require__(/*! ../modules/es.array.fill */ \"./node_modules/core-js/modules/es.array.fill.js\");\n__webpack_require__(/*! ../modules/es.array.filter */ \"./node_modules/core-js/modules/es.array.filter.js\");\n__webpack_require__(/*! ../modules/es.array.find */ \"./node_modules/core-js/modules/es.array.find.js\");\n__webpack_require__(/*! ../modules/es.array.find-index */ \"./node_modules/core-js/modules/es.array.find-index.js\");\n__webpack_require__(/*! ../modules/es.array.flat */ \"./node_modules/core-js/modules/es.array.flat.js\");\n__webpack_require__(/*! ../modules/es.array.flat-map */ \"./node_modules/core-js/modules/es.array.flat-map.js\");\n__webpack_require__(/*! ../modules/es.array.for-each */ \"./node_modules/core-js/modules/es.array.for-each.js\");\n__webpack_require__(/*! ../modules/es.array.includes */ \"./node_modules/core-js/modules/es.array.includes.js\");\n__webpack_require__(/*! ../modules/es.array.index-of */ \"./node_modules/core-js/modules/es.array.index-of.js\");\n__webpack_require__(/*! ../modules/es.array.join */ \"./node_modules/core-js/modules/es.array.join.js\");\n__webpack_require__(/*! ../modules/es.array.last-index-of */ \"./node_modules/core-js/modules/es.array.last-index-of.js\");\n__webpack_require__(/*! ../modules/es.array.map */ \"./node_modules/core-js/modules/es.array.map.js\");\n__webpack_require__(/*! ../modules/es.array.reduce */ \"./node_modules/core-js/modules/es.array.reduce.js\");\n__webpack_require__(/*! ../modules/es.array.reduce-right */ \"./node_modules/core-js/modules/es.array.reduce-right.js\");\n__webpack_require__(/*! ../modules/es.array.reverse */ \"./node_modules/core-js/modules/es.array.reverse.js\");\n__webpack_require__(/*! ../modules/es.array.slice */ \"./node_modules/core-js/modules/es.array.slice.js\");\n__webpack_require__(/*! ../modules/es.array.some */ \"./node_modules/core-js/modules/es.array.some.js\");\n__webpack_require__(/*! ../modules/es.array.sort */ \"./node_modules/core-js/modules/es.array.sort.js\");\n__webpack_require__(/*! ../modules/es.array.splice */ \"./node_modules/core-js/modules/es.array.splice.js\");\n__webpack_require__(/*! ../modules/es.array.species */ \"./node_modules/core-js/modules/es.array.species.js\");\n__webpack_require__(/*! ../modules/es.array.unscopables.flat */ \"./node_modules/core-js/modules/es.array.unscopables.flat.js\");\n__webpack_require__(/*! ../modules/es.array.unscopables.flat-map */ \"./node_modules/core-js/modules/es.array.unscopables.flat-map.js\");\n__webpack_require__(/*! ../modules/es.array.iterator */ \"./node_modules/core-js/modules/es.array.iterator.js\");\n__webpack_require__(/*! ../modules/es.string.from-code-point */ \"./node_modules/core-js/modules/es.string.from-code-point.js\");\n__webpack_require__(/*! ../modules/es.string.raw */ \"./node_modules/core-js/modules/es.string.raw.js\");\n__webpack_require__(/*! ../modules/es.string.code-point-at */ \"./node_modules/core-js/modules/es.string.code-point-at.js\");\n__webpack_require__(/*! ../modules/es.string.ends-with */ \"./node_modules/core-js/modules/es.string.ends-with.js\");\n__webpack_require__(/*! ../modules/es.string.includes */ \"./node_modules/core-js/modules/es.string.includes.js\");\n__webpack_require__(/*! ../modules/es.string.match */ \"./node_modules/core-js/modules/es.string.match.js\");\n__webpack_require__(/*! ../modules/es.string.match-all */ \"./node_modules/core-js/modules/es.string.match-all.js\");\n__webpack_require__(/*! ../modules/es.string.pad-end */ \"./node_modules/core-js/modules/es.string.pad-end.js\");\n__webpack_require__(/*! ../modules/es.string.pad-start */ \"./node_modules/core-js/modules/es.string.pad-start.js\");\n__webpack_require__(/*! ../modules/es.string.repeat */ \"./node_modules/core-js/modules/es.string.repeat.js\");\n__webpack_require__(/*! ../modules/es.string.replace */ \"./node_modules/core-js/modules/es.string.replace.js\");\n__webpack_require__(/*! ../modules/es.string.search */ \"./node_modules/core-js/modules/es.string.search.js\");\n__webpack_require__(/*! ../modules/es.string.split */ \"./node_modules/core-js/modules/es.string.split.js\");\n__webpack_require__(/*! ../modules/es.string.starts-with */ \"./node_modules/core-js/modules/es.string.starts-with.js\");\n__webpack_require__(/*! ../modules/es.string.trim */ \"./node_modules/core-js/modules/es.string.trim.js\");\n__webpack_require__(/*! ../modules/es.string.trim-start */ \"./node_modules/core-js/modules/es.string.trim-start.js\");\n__webpack_require__(/*! ../modules/es.string.trim-end */ \"./node_modules/core-js/modules/es.string.trim-end.js\");\n__webpack_require__(/*! ../modules/es.string.iterator */ \"./node_modules/core-js/modules/es.string.iterator.js\");\n__webpack_require__(/*! ../modules/es.string.anchor */ \"./node_modules/core-js/modules/es.string.anchor.js\");\n__webpack_require__(/*! ../modules/es.string.big */ \"./node_modules/core-js/modules/es.string.big.js\");\n__webpack_require__(/*! ../modules/es.string.blink */ \"./node_modules/core-js/modules/es.string.blink.js\");\n__webpack_require__(/*! ../modules/es.string.bold */ \"./node_modules/core-js/modules/es.string.bold.js\");\n__webpack_require__(/*! ../modules/es.string.fixed */ \"./node_modules/core-js/modules/es.string.fixed.js\");\n__webpack_require__(/*! ../modules/es.string.fontcolor */ \"./node_modules/core-js/modules/es.string.fontcolor.js\");\n__webpack_require__(/*! ../modules/es.string.fontsize */ \"./node_modules/core-js/modules/es.string.fontsize.js\");\n__webpack_require__(/*! ../modules/es.string.italics */ \"./node_modules/core-js/modules/es.string.italics.js\");\n__webpack_require__(/*! ../modules/es.string.link */ \"./node_modules/core-js/modules/es.string.link.js\");\n__webpack_require__(/*! ../modules/es.string.small */ \"./node_modules/core-js/modules/es.string.small.js\");\n__webpack_require__(/*! ../modules/es.string.strike */ \"./node_modules/core-js/modules/es.string.strike.js\");\n__webpack_require__(/*! ../modules/es.string.sub */ \"./node_modules/core-js/modules/es.string.sub.js\");\n__webpack_require__(/*! ../modules/es.string.sup */ \"./node_modules/core-js/modules/es.string.sup.js\");\n__webpack_require__(/*! ../modules/es.regexp.constructor */ \"./node_modules/core-js/modules/es.regexp.constructor.js\");\n__webpack_require__(/*! ../modules/es.regexp.exec */ \"./node_modules/core-js/modules/es.regexp.exec.js\");\n__webpack_require__(/*! ../modules/es.regexp.flags */ \"./node_modules/core-js/modules/es.regexp.flags.js\");\n__webpack_require__(/*! ../modules/es.regexp.sticky */ \"./node_modules/core-js/modules/es.regexp.sticky.js\");\n__webpack_require__(/*! ../modules/es.regexp.test */ \"./node_modules/core-js/modules/es.regexp.test.js\");\n__webpack_require__(/*! ../modules/es.regexp.to-string */ \"./node_modules/core-js/modules/es.regexp.to-string.js\");\n__webpack_require__(/*! ../modules/es.parse-int */ \"./node_modules/core-js/modules/es.parse-int.js\");\n__webpack_require__(/*! ../modules/es.parse-float */ \"./node_modules/core-js/modules/es.parse-float.js\");\n__webpack_require__(/*! ../modules/es.number.constructor */ \"./node_modules/core-js/modules/es.number.constructor.js\");\n__webpack_require__(/*! ../modules/es.number.epsilon */ \"./node_modules/core-js/modules/es.number.epsilon.js\");\n__webpack_require__(/*! ../modules/es.number.is-finite */ \"./node_modules/core-js/modules/es.number.is-finite.js\");\n__webpack_require__(/*! ../modules/es.number.is-integer */ \"./node_modules/core-js/modules/es.number.is-integer.js\");\n__webpack_require__(/*! ../modules/es.number.is-nan */ \"./node_modules/core-js/modules/es.number.is-nan.js\");\n__webpack_require__(/*! ../modules/es.number.is-safe-integer */ \"./node_modules/core-js/modules/es.number.is-safe-integer.js\");\n__webpack_require__(/*! ../modules/es.number.max-safe-integer */ \"./node_modules/core-js/modules/es.number.max-safe-integer.js\");\n__webpack_require__(/*! ../modules/es.number.min-safe-integer */ \"./node_modules/core-js/modules/es.number.min-safe-integer.js\");\n__webpack_require__(/*! ../modules/es.number.parse-float */ \"./node_modules/core-js/modules/es.number.parse-float.js\");\n__webpack_require__(/*! ../modules/es.number.parse-int */ \"./node_modules/core-js/modules/es.number.parse-int.js\");\n__webpack_require__(/*! ../modules/es.number.to-fixed */ \"./node_modules/core-js/modules/es.number.to-fixed.js\");\n__webpack_require__(/*! ../modules/es.number.to-precision */ \"./node_modules/core-js/modules/es.number.to-precision.js\");\n__webpack_require__(/*! ../modules/es.math.acosh */ \"./node_modules/core-js/modules/es.math.acosh.js\");\n__webpack_require__(/*! ../modules/es.math.asinh */ \"./node_modules/core-js/modules/es.math.asinh.js\");\n__webpack_require__(/*! ../modules/es.math.atanh */ \"./node_modules/core-js/modules/es.math.atanh.js\");\n__webpack_require__(/*! ../modules/es.math.cbrt */ \"./node_modules/core-js/modules/es.math.cbrt.js\");\n__webpack_require__(/*! ../modules/es.math.clz32 */ \"./node_modules/core-js/modules/es.math.clz32.js\");\n__webpack_require__(/*! ../modules/es.math.cosh */ \"./node_modules/core-js/modules/es.math.cosh.js\");\n__webpack_require__(/*! ../modules/es.math.expm1 */ \"./node_modules/core-js/modules/es.math.expm1.js\");\n__webpack_require__(/*! ../modules/es.math.fround */ \"./node_modules/core-js/modules/es.math.fround.js\");\n__webpack_require__(/*! ../modules/es.math.hypot */ \"./node_modules/core-js/modules/es.math.hypot.js\");\n__webpack_require__(/*! ../modules/es.math.imul */ \"./node_modules/core-js/modules/es.math.imul.js\");\n__webpack_require__(/*! ../modules/es.math.log10 */ \"./node_modules/core-js/modules/es.math.log10.js\");\n__webpack_require__(/*! ../modules/es.math.log1p */ \"./node_modules/core-js/modules/es.math.log1p.js\");\n__webpack_require__(/*! ../modules/es.math.log2 */ \"./node_modules/core-js/modules/es.math.log2.js\");\n__webpack_require__(/*! ../modules/es.math.sign */ \"./node_modules/core-js/modules/es.math.sign.js\");\n__webpack_require__(/*! ../modules/es.math.sinh */ \"./node_modules/core-js/modules/es.math.sinh.js\");\n__webpack_require__(/*! ../modules/es.math.tanh */ \"./node_modules/core-js/modules/es.math.tanh.js\");\n__webpack_require__(/*! ../modules/es.math.to-string-tag */ \"./node_modules/core-js/modules/es.math.to-string-tag.js\");\n__webpack_require__(/*! ../modules/es.math.trunc */ \"./node_modules/core-js/modules/es.math.trunc.js\");\n__webpack_require__(/*! ../modules/es.date.now */ \"./node_modules/core-js/modules/es.date.now.js\");\n__webpack_require__(/*! ../modules/es.date.to-json */ \"./node_modules/core-js/modules/es.date.to-json.js\");\n__webpack_require__(/*! ../modules/es.date.to-iso-string */ \"./node_modules/core-js/modules/es.date.to-iso-string.js\");\n__webpack_require__(/*! ../modules/es.date.to-string */ \"./node_modules/core-js/modules/es.date.to-string.js\");\n__webpack_require__(/*! ../modules/es.date.to-primitive */ \"./node_modules/core-js/modules/es.date.to-primitive.js\");\n__webpack_require__(/*! ../modules/es.json.stringify */ \"./node_modules/core-js/modules/es.json.stringify.js\");\n__webpack_require__(/*! ../modules/es.json.to-string-tag */ \"./node_modules/core-js/modules/es.json.to-string-tag.js\");\n__webpack_require__(/*! ../modules/es.promise */ \"./node_modules/core-js/modules/es.promise.js\");\n__webpack_require__(/*! ../modules/es.promise.all-settled */ \"./node_modules/core-js/modules/es.promise.all-settled.js\");\n__webpack_require__(/*! ../modules/es.promise.finally */ \"./node_modules/core-js/modules/es.promise.finally.js\");\n__webpack_require__(/*! ../modules/es.map */ \"./node_modules/core-js/modules/es.map.js\");\n__webpack_require__(/*! ../modules/es.set */ \"./node_modules/core-js/modules/es.set.js\");\n__webpack_require__(/*! ../modules/es.weak-map */ \"./node_modules/core-js/modules/es.weak-map.js\");\n__webpack_require__(/*! ../modules/es.weak-set */ \"./node_modules/core-js/modules/es.weak-set.js\");\n__webpack_require__(/*! ../modules/es.array-buffer.constructor */ \"./node_modules/core-js/modules/es.array-buffer.constructor.js\");\n__webpack_require__(/*! ../modules/es.array-buffer.is-view */ \"./node_modules/core-js/modules/es.array-buffer.is-view.js\");\n__webpack_require__(/*! ../modules/es.array-buffer.slice */ \"./node_modules/core-js/modules/es.array-buffer.slice.js\");\n__webpack_require__(/*! ../modules/es.data-view */ \"./node_modules/core-js/modules/es.data-view.js\");\n__webpack_require__(/*! ../modules/es.typed-array.int8-array */ \"./node_modules/core-js/modules/es.typed-array.int8-array.js\");\n__webpack_require__(/*! ../modules/es.typed-array.uint8-array */ \"./node_modules/core-js/modules/es.typed-array.uint8-array.js\");\n__webpack_require__(/*! ../modules/es.typed-array.uint8-clamped-array */ \"./node_modules/core-js/modules/es.typed-array.uint8-clamped-array.js\");\n__webpack_require__(/*! ../modules/es.typed-array.int16-array */ \"./node_modules/core-js/modules/es.typed-array.int16-array.js\");\n__webpack_require__(/*! ../modules/es.typed-array.uint16-array */ \"./node_modules/core-js/modules/es.typed-array.uint16-array.js\");\n__webpack_require__(/*! ../modules/es.typed-array.int32-array */ \"./node_modules/core-js/modules/es.typed-array.int32-array.js\");\n__webpack_require__(/*! ../modules/es.typed-array.uint32-array */ \"./node_modules/core-js/modules/es.typed-array.uint32-array.js\");\n__webpack_require__(/*! ../modules/es.typed-array.float32-array */ \"./node_modules/core-js/modules/es.typed-array.float32-array.js\");\n__webpack_require__(/*! ../modules/es.typed-array.float64-array */ \"./node_modules/core-js/modules/es.typed-array.float64-array.js\");\n__webpack_require__(/*! ../modules/es.typed-array.from */ \"./node_modules/core-js/modules/es.typed-array.from.js\");\n__webpack_require__(/*! ../modules/es.typed-array.of */ \"./node_modules/core-js/modules/es.typed-array.of.js\");\n__webpack_require__(/*! ../modules/es.typed-array.copy-within */ \"./node_modules/core-js/modules/es.typed-array.copy-within.js\");\n__webpack_require__(/*! ../modules/es.typed-array.every */ \"./node_modules/core-js/modules/es.typed-array.every.js\");\n__webpack_require__(/*! ../modules/es.typed-array.fill */ \"./node_modules/core-js/modules/es.typed-array.fill.js\");\n__webpack_require__(/*! ../modules/es.typed-array.filter */ \"./node_modules/core-js/modules/es.typed-array.filter.js\");\n__webpack_require__(/*! ../modules/es.typed-array.find */ \"./node_modules/core-js/modules/es.typed-array.find.js\");\n__webpack_require__(/*! ../modules/es.typed-array.find-index */ \"./node_modules/core-js/modules/es.typed-array.find-index.js\");\n__webpack_require__(/*! ../modules/es.typed-array.for-each */ \"./node_modules/core-js/modules/es.typed-array.for-each.js\");\n__webpack_require__(/*! ../modules/es.typed-array.includes */ \"./node_modules/core-js/modules/es.typed-array.includes.js\");\n__webpack_require__(/*! ../modules/es.typed-array.index-of */ \"./node_modules/core-js/modules/es.typed-array.index-of.js\");\n__webpack_require__(/*! ../modules/es.typed-array.iterator */ \"./node_modules/core-js/modules/es.typed-array.iterator.js\");\n__webpack_require__(/*! ../modules/es.typed-array.join */ \"./node_modules/core-js/modules/es.typed-array.join.js\");\n__webpack_require__(/*! ../modules/es.typed-array.last-index-of */ \"./node_modules/core-js/modules/es.typed-array.last-index-of.js\");\n__webpack_require__(/*! ../modules/es.typed-array.map */ \"./node_modules/core-js/modules/es.typed-array.map.js\");\n__webpack_require__(/*! ../modules/es.typed-array.reduce */ \"./node_modules/core-js/modules/es.typed-array.reduce.js\");\n__webpack_require__(/*! ../modules/es.typed-array.reduce-right */ \"./node_modules/core-js/modules/es.typed-array.reduce-right.js\");\n__webpack_require__(/*! ../modules/es.typed-array.reverse */ \"./node_modules/core-js/modules/es.typed-array.reverse.js\");\n__webpack_require__(/*! ../modules/es.typed-array.set */ \"./node_modules/core-js/modules/es.typed-array.set.js\");\n__webpack_require__(/*! ../modules/es.typed-array.slice */ \"./node_modules/core-js/modules/es.typed-array.slice.js\");\n__webpack_require__(/*! ../modules/es.typed-array.some */ \"./node_modules/core-js/modules/es.typed-array.some.js\");\n__webpack_require__(/*! ../modules/es.typed-array.sort */ \"./node_modules/core-js/modules/es.typed-array.sort.js\");\n__webpack_require__(/*! ../modules/es.typed-array.subarray */ \"./node_modules/core-js/modules/es.typed-array.subarray.js\");\n__webpack_require__(/*! ../modules/es.typed-array.to-locale-string */ \"./node_modules/core-js/modules/es.typed-array.to-locale-string.js\");\n__webpack_require__(/*! ../modules/es.typed-array.to-string */ \"./node_modules/core-js/modules/es.typed-array.to-string.js\");\n__webpack_require__(/*! ../modules/es.reflect.apply */ \"./node_modules/core-js/modules/es.reflect.apply.js\");\n__webpack_require__(/*! ../modules/es.reflect.construct */ \"./node_modules/core-js/modules/es.reflect.construct.js\");\n__webpack_require__(/*! ../modules/es.reflect.define-property */ \"./node_modules/core-js/modules/es.reflect.define-property.js\");\n__webpack_require__(/*! ../modules/es.reflect.delete-property */ \"./node_modules/core-js/modules/es.reflect.delete-property.js\");\n__webpack_require__(/*! ../modules/es.reflect.get */ \"./node_modules/core-js/modules/es.reflect.get.js\");\n__webpack_require__(/*! ../modules/es.reflect.get-own-property-descriptor */ \"./node_modules/core-js/modules/es.reflect.get-own-property-descriptor.js\");\n__webpack_require__(/*! ../modules/es.reflect.get-prototype-of */ \"./node_modules/core-js/modules/es.reflect.get-prototype-of.js\");\n__webpack_require__(/*! ../modules/es.reflect.has */ \"./node_modules/core-js/modules/es.reflect.has.js\");\n__webpack_require__(/*! ../modules/es.reflect.is-extensible */ \"./node_modules/core-js/modules/es.reflect.is-extensible.js\");\n__webpack_require__(/*! ../modules/es.reflect.own-keys */ \"./node_modules/core-js/modules/es.reflect.own-keys.js\");\n__webpack_require__(/*! ../modules/es.reflect.prevent-extensions */ \"./node_modules/core-js/modules/es.reflect.prevent-extensions.js\");\n__webpack_require__(/*! ../modules/es.reflect.set */ \"./node_modules/core-js/modules/es.reflect.set.js\");\n__webpack_require__(/*! ../modules/es.reflect.set-prototype-of */ \"./node_modules/core-js/modules/es.reflect.set-prototype-of.js\");\nvar path = __webpack_require__(/*! ../internals/path */ \"./node_modules/core-js/internals/path.js\");\n\nmodule.exports = path;\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/es/index.js?");
@@ -42,7 +41,6 @@ eval("__webpack_require__(/*! ../modules/es.symbol */ \"./node_modules/core-js/m
   \******************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module */
-/*! CommonJS bailout: module.exports is used directly at 1:0-14 */
 /***/ (function(module) {
 
 eval("module.exports = function (it) {\n  if (typeof it != 'function') {\n    throw TypeError(String(it) + ' is not a function');\n  } return it;\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/a-function.js?");
@@ -55,7 +53,6 @@ eval("module.exports = function (it) {\n  if (typeof it != 'function') {\n    th
   \****************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 3:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var isObject = __webpack_require__(/*! ../internals/is-object */ \"./node_modules/core-js/internals/is-object.js\");\n\nmodule.exports = function (it) {\n  if (!isObject(it) && it !== null) {\n    throw TypeError(\"Can't set \" + String(it) + ' as a prototype');\n  } return it;\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/a-possible-prototype.js?");
@@ -68,7 +65,6 @@ eval("var isObject = __webpack_require__(/*! ../internals/is-object */ \"./node_
   \**************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 18:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var wellKnownSymbol = __webpack_require__(/*! ../internals/well-known-symbol */ \"./node_modules/core-js/internals/well-known-symbol.js\");\nvar create = __webpack_require__(/*! ../internals/object-create */ \"./node_modules/core-js/internals/object-create.js\");\nvar definePropertyModule = __webpack_require__(/*! ../internals/object-define-property */ \"./node_modules/core-js/internals/object-define-property.js\");\n\nvar UNSCOPABLES = wellKnownSymbol('unscopables');\nvar ArrayPrototype = Array.prototype;\n\n// Array.prototype[@@unscopables]\n// https://tc39.github.io/ecma262/#sec-array.prototype-@@unscopables\nif (ArrayPrototype[UNSCOPABLES] == undefined) {\n  definePropertyModule.f(ArrayPrototype, UNSCOPABLES, {\n    configurable: true,\n    value: create(null)\n  });\n}\n\n// add a key to Array.prototype[@@unscopables]\nmodule.exports = function (key) {\n  ArrayPrototype[UNSCOPABLES][key] = true;\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/add-to-unscopables.js?");
@@ -81,7 +77,6 @@ eval("var wellKnownSymbol = __webpack_require__(/*! ../internals/well-known-symb
   \****************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: __webpack_require__, module */
-/*! CommonJS bailout: module.exports is used directly at 6:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -95,7 +90,6 @@ eval("\nvar charAt = __webpack_require__(/*! ../internals/string-multibyte */ \"
   \*******************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module */
-/*! CommonJS bailout: module.exports is used directly at 1:0-14 */
 /***/ (function(module) {
 
 eval("module.exports = function (it, Constructor, name) {\n  if (!(it instanceof Constructor)) {\n    throw TypeError('Incorrect ' + (name ? name + ' ' : '') + 'invocation');\n  } return it;\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/an-instance.js?");
@@ -108,7 +102,6 @@ eval("module.exports = function (it, Constructor, name) {\n  if (!(it instanceof
   \*****************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 3:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var isObject = __webpack_require__(/*! ../internals/is-object */ \"./node_modules/core-js/internals/is-object.js\");\n\nmodule.exports = function (it) {\n  if (!isObject(it)) {\n    throw TypeError(String(it) + ' is not an object');\n  } return it;\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/an-object.js?");
@@ -121,7 +114,6 @@ eval("var isObject = __webpack_require__(/*! ../internals/is-object */ \"./node_
   \***************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module */
-/*! CommonJS bailout: module.exports is used directly at 1:0-14 */
 /***/ (function(module) {
 
 eval("module.exports = typeof ArrayBuffer !== 'undefined' && typeof DataView !== 'undefined';\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/array-buffer-native.js?");
@@ -134,7 +126,6 @@ eval("module.exports = typeof ArrayBuffer !== 'undefined' && typeof DataView !==
   \******************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: __webpack_require__, module */
-/*! CommonJS bailout: module.exports is used directly at 145:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -148,7 +139,6 @@ eval("\nvar NATIVE_ARRAY_BUFFER = __webpack_require__(/*! ../internals/array-buf
   \********************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: __webpack_require__, module */
-/*! CommonJS bailout: module.exports is used directly at 223:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -162,7 +152,6 @@ eval("\nvar global = __webpack_require__(/*! ../internals/global */ \"./node_mod
   \*************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 10:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -176,7 +165,6 @@ eval("\nvar toObject = __webpack_require__(/*! ../internals/to-object */ \"./nod
   \******************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 8:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -190,7 +178,6 @@ eval("\nvar toObject = __webpack_require__(/*! ../internals/to-object */ \"./nod
   \**********************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: __webpack_require__, module */
-/*! CommonJS bailout: module.exports is used directly at 11:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -204,7 +191,6 @@ eval("\nvar $forEach = __webpack_require__(/*! ../internals/array-iteration */ \
   \******************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 12:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -218,7 +204,6 @@ eval("\nvar bind = __webpack_require__(/*! ../internals/function-bind-context */
   \**********************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 25:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var toIndexedObject = __webpack_require__(/*! ../internals/to-indexed-object */ \"./node_modules/core-js/internals/to-indexed-object.js\");\nvar toLength = __webpack_require__(/*! ../internals/to-length */ \"./node_modules/core-js/internals/to-length.js\");\nvar toAbsoluteIndex = __webpack_require__(/*! ../internals/to-absolute-index */ \"./node_modules/core-js/internals/to-absolute-index.js\");\n\n// `Array.prototype.{ indexOf, includes }` methods implementation\nvar createMethod = function (IS_INCLUDES) {\n  return function ($this, el, fromIndex) {\n    var O = toIndexedObject($this);\n    var length = toLength(O.length);\n    var index = toAbsoluteIndex(fromIndex, length);\n    var value;\n    // Array#includes uses SameValueZero equality algorithm\n    // eslint-disable-next-line no-self-compare\n    if (IS_INCLUDES && el != el) while (length > index) {\n      value = O[index++];\n      // eslint-disable-next-line no-self-compare\n      if (value != value) return true;\n    // Array#indexOf ignores holes, Array#includes - not\n    } else for (;length > index; index++) {\n      if ((IS_INCLUDES || index in O) && O[index] === el) return IS_INCLUDES || index || 0;\n    } return !IS_INCLUDES && -1;\n  };\n};\n\nmodule.exports = {\n  // `Array.prototype.includes` method\n  // https://tc39.github.io/ecma262/#sec-array.prototype.includes\n  includes: createMethod(true),\n  // `Array.prototype.indexOf` method\n  // https://tc39.github.io/ecma262/#sec-array.prototype.indexof\n  indexOf: createMethod(false)\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/array-includes.js?");
@@ -231,7 +216,6 @@ eval("var toIndexedObject = __webpack_require__(/*! ../internals/to-indexed-obje
   \***********************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 43:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var bind = __webpack_require__(/*! ../internals/function-bind-context */ \"./node_modules/core-js/internals/function-bind-context.js\");\nvar IndexedObject = __webpack_require__(/*! ../internals/indexed-object */ \"./node_modules/core-js/internals/indexed-object.js\");\nvar toObject = __webpack_require__(/*! ../internals/to-object */ \"./node_modules/core-js/internals/to-object.js\");\nvar toLength = __webpack_require__(/*! ../internals/to-length */ \"./node_modules/core-js/internals/to-length.js\");\nvar arraySpeciesCreate = __webpack_require__(/*! ../internals/array-species-create */ \"./node_modules/core-js/internals/array-species-create.js\");\n\nvar push = [].push;\n\n// `Array.prototype.{ forEach, map, filter, some, every, find, findIndex }` methods implementation\nvar createMethod = function (TYPE) {\n  var IS_MAP = TYPE == 1;\n  var IS_FILTER = TYPE == 2;\n  var IS_SOME = TYPE == 3;\n  var IS_EVERY = TYPE == 4;\n  var IS_FIND_INDEX = TYPE == 6;\n  var NO_HOLES = TYPE == 5 || IS_FIND_INDEX;\n  return function ($this, callbackfn, that, specificCreate) {\n    var O = toObject($this);\n    var self = IndexedObject(O);\n    var boundFunction = bind(callbackfn, that, 3);\n    var length = toLength(self.length);\n    var index = 0;\n    var create = specificCreate || arraySpeciesCreate;\n    var target = IS_MAP ? create($this, length) : IS_FILTER ? create($this, 0) : undefined;\n    var value, result;\n    for (;length > index; index++) if (NO_HOLES || index in self) {\n      value = self[index];\n      result = boundFunction(value, index, O);\n      if (TYPE) {\n        if (IS_MAP) target[index] = result; // map\n        else if (result) switch (TYPE) {\n          case 3: return true;              // some\n          case 5: return value;             // find\n          case 6: return index;             // findIndex\n          case 2: push.call(target, value); // filter\n        } else if (IS_EVERY) return false;  // every\n      }\n    }\n    return IS_FIND_INDEX ? -1 : IS_SOME || IS_EVERY ? IS_EVERY : target;\n  };\n};\n\nmodule.exports = {\n  // `Array.prototype.forEach` method\n  // https://tc39.github.io/ecma262/#sec-array.prototype.foreach\n  forEach: createMethod(0),\n  // `Array.prototype.map` method\n  // https://tc39.github.io/ecma262/#sec-array.prototype.map\n  map: createMethod(1),\n  // `Array.prototype.filter` method\n  // https://tc39.github.io/ecma262/#sec-array.prototype.filter\n  filter: createMethod(2),\n  // `Array.prototype.some` method\n  // https://tc39.github.io/ecma262/#sec-array.prototype.some\n  some: createMethod(3),\n  // `Array.prototype.every` method\n  // https://tc39.github.io/ecma262/#sec-array.prototype.every\n  every: createMethod(4),\n  // `Array.prototype.find` method\n  // https://tc39.github.io/ecma262/#sec-array.prototype.find\n  find: createMethod(5),\n  // `Array.prototype.findIndex` method\n  // https://tc39.github.io/ecma262/#sec-array.prototype.findIndex\n  findIndex: createMethod(6)\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/array-iteration.js?");
@@ -244,7 +228,6 @@ eval("var bind = __webpack_require__(/*! ../internals/function-bind-context */ \
   \***************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 18:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -258,7 +241,6 @@ eval("\nvar toIndexedObject = __webpack_require__(/*! ../internals/to-indexed-ob
   \****************************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 7:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var fails = __webpack_require__(/*! ../internals/fails */ \"./node_modules/core-js/internals/fails.js\");\nvar wellKnownSymbol = __webpack_require__(/*! ../internals/well-known-symbol */ \"./node_modules/core-js/internals/well-known-symbol.js\");\nvar V8_VERSION = __webpack_require__(/*! ../internals/engine-v8-version */ \"./node_modules/core-js/internals/engine-v8-version.js\");\n\nvar SPECIES = wellKnownSymbol('species');\n\nmodule.exports = function (METHOD_NAME) {\n  // We can't use this feature detection in V8 since it causes\n  // deoptimization and serious performance degradation\n  // https://github.com/zloirock/core-js/issues/677\n  return V8_VERSION >= 51 || !fails(function () {\n    var array = [];\n    var constructor = array.constructor = {};\n    constructor[SPECIES] = function () {\n      return { foo: 1 };\n    };\n    return array[METHOD_NAME](Boolean).foo !== 1;\n  });\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/array-method-has-species-support.js?");
@@ -271,7 +253,6 @@ eval("var fails = __webpack_require__(/*! ../internals/fails */ \"./node_modules
   \******************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 4:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -285,7 +266,6 @@ eval("\nvar fails = __webpack_require__(/*! ../internals/fails */ \"./node_modul
   \***********************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 10:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var DESCRIPTORS = __webpack_require__(/*! ../internals/descriptors */ \"./node_modules/core-js/internals/descriptors.js\");\nvar fails = __webpack_require__(/*! ../internals/fails */ \"./node_modules/core-js/internals/fails.js\");\nvar has = __webpack_require__(/*! ../internals/has */ \"./node_modules/core-js/internals/has.js\");\n\nvar defineProperty = Object.defineProperty;\nvar cache = {};\n\nvar thrower = function (it) { throw it; };\n\nmodule.exports = function (METHOD_NAME, options) {\n  if (has(cache, METHOD_NAME)) return cache[METHOD_NAME];\n  if (!options) options = {};\n  var method = [][METHOD_NAME];\n  var ACCESSORS = has(options, 'ACCESSORS') ? options.ACCESSORS : false;\n  var argument0 = has(options, 0) ? options[0] : thrower;\n  var argument1 = has(options, 1) ? options[1] : undefined;\n\n  return cache[METHOD_NAME] = !!method && !fails(function () {\n    if (ACCESSORS && !DESCRIPTORS) return true;\n    var O = { length: -1 };\n\n    if (ACCESSORS) defineProperty(O, 1, { enumerable: true, get: thrower });\n    else O[1] = 1;\n\n    method.call(O, argument0, argument1);\n  });\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/array-method-uses-to-length.js?");
@@ -298,7 +278,6 @@ eval("var DESCRIPTORS = __webpack_require__(/*! ../internals/descriptors */ \"./
   \********************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 33:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var aFunction = __webpack_require__(/*! ../internals/a-function */ \"./node_modules/core-js/internals/a-function.js\");\nvar toObject = __webpack_require__(/*! ../internals/to-object */ \"./node_modules/core-js/internals/to-object.js\");\nvar IndexedObject = __webpack_require__(/*! ../internals/indexed-object */ \"./node_modules/core-js/internals/indexed-object.js\");\nvar toLength = __webpack_require__(/*! ../internals/to-length */ \"./node_modules/core-js/internals/to-length.js\");\n\n// `Array.prototype.{ reduce, reduceRight }` methods implementation\nvar createMethod = function (IS_RIGHT) {\n  return function (that, callbackfn, argumentsLength, memo) {\n    aFunction(callbackfn);\n    var O = toObject(that);\n    var self = IndexedObject(O);\n    var length = toLength(O.length);\n    var index = IS_RIGHT ? length - 1 : 0;\n    var i = IS_RIGHT ? -1 : 1;\n    if (argumentsLength < 2) while (true) {\n      if (index in self) {\n        memo = self[index];\n        index += i;\n        break;\n      }\n      index += i;\n      if (IS_RIGHT ? index < 0 : length <= index) {\n        throw TypeError('Reduce of empty array with no initial value');\n      }\n    }\n    for (;IS_RIGHT ? index >= 0 : length > index; index += i) if (index in self) {\n      memo = callbackfn(memo, self[index], index, O);\n    }\n    return memo;\n  };\n};\n\nmodule.exports = {\n  // `Array.prototype.reduce` method\n  // https://tc39.github.io/ecma262/#sec-array.prototype.reduce\n  left: createMethod(false),\n  // `Array.prototype.reduceRight` method\n  // https://tc39.github.io/ecma262/#sec-array.prototype.reduceright\n  right: createMethod(true)\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/array-reduce.js?");
@@ -311,7 +290,6 @@ eval("var aFunction = __webpack_require__(/*! ../internals/a-function */ \"./nod
   \****************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 9:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var isObject = __webpack_require__(/*! ../internals/is-object */ \"./node_modules/core-js/internals/is-object.js\");\nvar isArray = __webpack_require__(/*! ../internals/is-array */ \"./node_modules/core-js/internals/is-array.js\");\nvar wellKnownSymbol = __webpack_require__(/*! ../internals/well-known-symbol */ \"./node_modules/core-js/internals/well-known-symbol.js\");\n\nvar SPECIES = wellKnownSymbol('species');\n\n// `ArraySpeciesCreate` abstract operation\n// https://tc39.github.io/ecma262/#sec-arrayspeciescreate\nmodule.exports = function (originalArray, length) {\n  var C;\n  if (isArray(originalArray)) {\n    C = originalArray.constructor;\n    // cross-realm fallback\n    if (typeof C == 'function' && (C === Array || isArray(C.prototype))) C = undefined;\n    else if (isObject(C)) {\n      C = C[SPECIES];\n      if (C === null) C = undefined;\n    }\n  } return new (C === undefined ? Array : C)(length === 0 ? 0 : length);\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/array-species-create.js?");
@@ -324,7 +302,6 @@ eval("var isObject = __webpack_require__(/*! ../internals/is-object */ \"./node_
   \****************************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 4:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var anObject = __webpack_require__(/*! ../internals/an-object */ \"./node_modules/core-js/internals/an-object.js\");\n\n// call something on iterator step with safe closing on error\nmodule.exports = function (iterator, fn, value, ENTRIES) {\n  try {\n    return ENTRIES ? fn(anObject(value)[0], value[1]) : fn(value);\n  // 7.4.6 IteratorClose(iterator, completion)\n  } catch (error) {\n    var returnMethod = iterator['return'];\n    if (returnMethod !== undefined) anObject(returnMethod.call(iterator));\n    throw error;\n  }\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/call-with-safe-iteration-closing.js?");
@@ -337,7 +314,6 @@ eval("var anObject = __webpack_require__(/*! ../internals/an-object */ \"./node_
   \**************************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 23:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var wellKnownSymbol = __webpack_require__(/*! ../internals/well-known-symbol */ \"./node_modules/core-js/internals/well-known-symbol.js\");\n\nvar ITERATOR = wellKnownSymbol('iterator');\nvar SAFE_CLOSING = false;\n\ntry {\n  var called = 0;\n  var iteratorWithReturn = {\n    next: function () {\n      return { done: !!called++ };\n    },\n    'return': function () {\n      SAFE_CLOSING = true;\n    }\n  };\n  iteratorWithReturn[ITERATOR] = function () {\n    return this;\n  };\n  // eslint-disable-next-line no-throw-literal\n  Array.from(iteratorWithReturn, function () { throw 2; });\n} catch (error) { /* empty */ }\n\nmodule.exports = function (exec, SKIP_CLOSING) {\n  if (!SKIP_CLOSING && !SAFE_CLOSING) return false;\n  var ITERATION_SUPPORT = false;\n  try {\n    var object = {};\n    object[ITERATOR] = function () {\n      return {\n        next: function () {\n          return { done: ITERATION_SUPPORT = true };\n        }\n      };\n    };\n    exec(object);\n  } catch (error) { /* empty */ }\n  return ITERATION_SUPPORT;\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/check-correctness-of-iteration.js?");
@@ -350,7 +326,6 @@ eval("var wellKnownSymbol = __webpack_require__(/*! ../internals/well-known-symb
   \*******************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module */
-/*! CommonJS bailout: module.exports is used directly at 3:0-14 */
 /***/ (function(module) {
 
 eval("var toString = {}.toString;\n\nmodule.exports = function (it) {\n  return toString.call(it).slice(8, -1);\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/classof-raw.js?");
@@ -363,7 +338,6 @@ eval("var toString = {}.toString;\n\nmodule.exports = function (it) {\n  return 
   \***************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 17:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var TO_STRING_TAG_SUPPORT = __webpack_require__(/*! ../internals/to-string-tag-support */ \"./node_modules/core-js/internals/to-string-tag-support.js\");\nvar classofRaw = __webpack_require__(/*! ../internals/classof-raw */ \"./node_modules/core-js/internals/classof-raw.js\");\nvar wellKnownSymbol = __webpack_require__(/*! ../internals/well-known-symbol */ \"./node_modules/core-js/internals/well-known-symbol.js\");\n\nvar TO_STRING_TAG = wellKnownSymbol('toStringTag');\n// ES3 wrong here\nvar CORRECT_ARGUMENTS = classofRaw(function () { return arguments; }()) == 'Arguments';\n\n// fallback for IE11 Script Access Denied error\nvar tryGet = function (it, key) {\n  try {\n    return it[key];\n  } catch (error) { /* empty */ }\n};\n\n// getting tag from ES6+ `Object.prototype.toString`\nmodule.exports = TO_STRING_TAG_SUPPORT ? classofRaw : function (it) {\n  var O, tag, result;\n  return it === undefined ? 'Undefined' : it === null ? 'Null'\n    // @@toStringTag case\n    : typeof (tag = tryGet(O = Object(it), TO_STRING_TAG)) == 'string' ? tag\n    // builtinTag case\n    : CORRECT_ARGUMENTS ? classofRaw(O)\n    // ES3 arguments fallback\n    : (result = classofRaw(O)) == 'Object' && typeof O.callee == 'function' ? 'Arguments' : result;\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/classof.js?");
@@ -376,7 +350,6 @@ eval("var TO_STRING_TAG_SUPPORT = __webpack_require__(/*! ../internals/to-string
   \*************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: __webpack_require__, module */
-/*! CommonJS bailout: module.exports is used directly at 17:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -390,7 +363,6 @@ eval("\nvar defineProperty = __webpack_require__(/*! ../internals/object-define-
   \***********************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: __webpack_require__, module */
-/*! CommonJS bailout: module.exports is used directly at 55:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -404,7 +376,6 @@ eval("\nvar redefineAll = __webpack_require__(/*! ../internals/redefine-all */ \
   \******************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 15:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -418,7 +389,6 @@ eval("\nvar $ = __webpack_require__(/*! ../internals/export */ \"./node_modules/
   \***********************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 6:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var has = __webpack_require__(/*! ../internals/has */ \"./node_modules/core-js/internals/has.js\");\nvar ownKeys = __webpack_require__(/*! ../internals/own-keys */ \"./node_modules/core-js/internals/own-keys.js\");\nvar getOwnPropertyDescriptorModule = __webpack_require__(/*! ../internals/object-get-own-property-descriptor */ \"./node_modules/core-js/internals/object-get-own-property-descriptor.js\");\nvar definePropertyModule = __webpack_require__(/*! ../internals/object-define-property */ \"./node_modules/core-js/internals/object-define-property.js\");\n\nmodule.exports = function (target, source) {\n  var keys = ownKeys(source);\n  var defineProperty = definePropertyModule.f;\n  var getOwnPropertyDescriptor = getOwnPropertyDescriptorModule.f;\n  for (var i = 0; i < keys.length; i++) {\n    var key = keys[i];\n    if (!has(target, key)) defineProperty(target, key, getOwnPropertyDescriptor(source, key));\n  }\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/copy-constructor-properties.js?");
@@ -431,7 +401,6 @@ eval("var has = __webpack_require__(/*! ../internals/has */ \"./node_modules/cor
   \*******************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 5:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var wellKnownSymbol = __webpack_require__(/*! ../internals/well-known-symbol */ \"./node_modules/core-js/internals/well-known-symbol.js\");\n\nvar MATCH = wellKnownSymbol('match');\n\nmodule.exports = function (METHOD_NAME) {\n  var regexp = /./;\n  try {\n    '/./'[METHOD_NAME](regexp);\n  } catch (e) {\n    try {\n      regexp[MATCH] = false;\n      return '/./'[METHOD_NAME](regexp);\n    } catch (f) { /* empty */ }\n  } return false;\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/correct-is-regexp-logic.js?");
@@ -444,7 +413,6 @@ eval("var wellKnownSymbol = __webpack_require__(/*! ../internals/well-known-symb
   \********************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 3:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var fails = __webpack_require__(/*! ../internals/fails */ \"./node_modules/core-js/internals/fails.js\");\n\nmodule.exports = !fails(function () {\n  function F() { /* empty */ }\n  F.prototype.constructor = null;\n  return Object.getPrototypeOf(new F()) !== F.prototype;\n});\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/correct-prototype-getter.js?");
@@ -457,7 +425,6 @@ eval("var fails = __webpack_require__(/*! ../internals/fails */ \"./node_modules
   \*******************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 7:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var requireObjectCoercible = __webpack_require__(/*! ../internals/require-object-coercible */ \"./node_modules/core-js/internals/require-object-coercible.js\");\n\nvar quot = /\"/g;\n\n// B.2.3.2.1 CreateHTML(string, tag, attribute, value)\n// https://tc39.github.io/ecma262/#sec-createhtml\nmodule.exports = function (string, tag, attribute, value) {\n  var S = String(requireObjectCoercible(string));\n  var p1 = '<' + tag;\n  if (attribute !== '') p1 += ' ' + attribute + '=\"' + String(value).replace(quot, '&quot;') + '\"';\n  return p1 + '>' + S + '</' + tag + '>';\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/create-html.js?");
@@ -470,7 +437,6 @@ eval("var requireObjectCoercible = __webpack_require__(/*! ../internals/require-
   \***********************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: __webpack_require__, module */
-/*! CommonJS bailout: module.exports is used directly at 10:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -484,7 +450,6 @@ eval("\nvar IteratorPrototype = __webpack_require__(/*! ../internals/iterators-c
   \**************************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 5:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var DESCRIPTORS = __webpack_require__(/*! ../internals/descriptors */ \"./node_modules/core-js/internals/descriptors.js\");\nvar definePropertyModule = __webpack_require__(/*! ../internals/object-define-property */ \"./node_modules/core-js/internals/object-define-property.js\");\nvar createPropertyDescriptor = __webpack_require__(/*! ../internals/create-property-descriptor */ \"./node_modules/core-js/internals/create-property-descriptor.js\");\n\nmodule.exports = DESCRIPTORS ? function (object, key, value) {\n  return definePropertyModule.f(object, key, createPropertyDescriptor(1, value));\n} : function (object, key, value) {\n  object[key] = value;\n  return object;\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/create-non-enumerable-property.js?");
@@ -497,7 +462,6 @@ eval("var DESCRIPTORS = __webpack_require__(/*! ../internals/descriptors */ \"./
   \**********************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module */
-/*! CommonJS bailout: module.exports is used directly at 1:0-14 */
 /***/ (function(module) {
 
 eval("module.exports = function (bitmap, value) {\n  return {\n    enumerable: !(bitmap & 1),\n    configurable: !(bitmap & 2),\n    writable: !(bitmap & 4),\n    value: value\n  };\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/create-property-descriptor.js?");
@@ -510,7 +474,6 @@ eval("module.exports = function (bitmap, value) {\n  return {\n    enumerable: !
   \***********************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 6:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -524,7 +487,6 @@ eval("\nvar toPrimitive = __webpack_require__(/*! ../internals/to-primitive */ \
   \**************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: __webpack_require__, module */
-/*! CommonJS bailout: module.exports is used directly at 13:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -538,7 +500,6 @@ eval("\nvar fails = __webpack_require__(/*! ../internals/fails */ \"./node_modul
   \*************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 5:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -552,7 +513,6 @@ eval("\nvar anObject = __webpack_require__(/*! ../internals/an-object */ \"./nod
   \***********************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 23:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -566,7 +526,6 @@ eval("\nvar $ = __webpack_require__(/*! ../internals/export */ \"./node_modules/
   \********************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: __webpack_require__, module */
-/*! CommonJS bailout: module.exports is used directly at 6:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var path = __webpack_require__(/*! ../internals/path */ \"./node_modules/core-js/internals/path.js\");\nvar has = __webpack_require__(/*! ../internals/has */ \"./node_modules/core-js/internals/has.js\");\nvar wrappedWellKnownSymbolModule = __webpack_require__(/*! ../internals/well-known-symbol-wrapped */ \"./node_modules/core-js/internals/well-known-symbol-wrapped.js\");\nvar defineProperty = __webpack_require__(/*! ../internals/object-define-property */ \"./node_modules/core-js/internals/object-define-property.js\").f;\n\nmodule.exports = function (NAME) {\n  var Symbol = path.Symbol || (path.Symbol = {});\n  if (!has(Symbol, NAME)) defineProperty(Symbol, NAME, {\n    value: wrappedWellKnownSymbolModule.f(NAME)\n  });\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/define-well-known-symbol.js?");
@@ -579,7 +538,6 @@ eval("var path = __webpack_require__(/*! ../internals/path */ \"./node_modules/c
   \*******************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 4:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var fails = __webpack_require__(/*! ../internals/fails */ \"./node_modules/core-js/internals/fails.js\");\n\n// Thank's IE8 for his funny defineProperty\nmodule.exports = !fails(function () {\n  return Object.defineProperty({}, 1, { get: function () { return 7; } })[1] != 7;\n});\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/descriptors.js?");
@@ -592,7 +550,6 @@ eval("var fails = __webpack_require__(/*! ../internals/fails */ \"./node_modules
   \*******************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 8:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var global = __webpack_require__(/*! ../internals/global */ \"./node_modules/core-js/internals/global.js\");\nvar isObject = __webpack_require__(/*! ../internals/is-object */ \"./node_modules/core-js/internals/is-object.js\");\n\nvar document = global.document;\n// typeof document.createElement is 'object' in old IE\nvar EXISTS = isObject(document) && isObject(document.createElement);\n\nmodule.exports = function (it) {\n  return EXISTS ? document.createElement(it) : {};\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/document-create-element.js?");
@@ -605,7 +562,6 @@ eval("var global = __webpack_require__(/*! ../internals/global */ \"./node_modul
   \*********************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module */
-/*! CommonJS bailout: module.exports is used directly at 3:0-14 */
 /***/ (function(module) {
 
 eval("// iterable DOM collections\n// flag - `iterable` interface - 'entries', 'keys', 'values', 'forEach' methods\nmodule.exports = {\n  CSSRuleList: 0,\n  CSSStyleDeclaration: 0,\n  CSSValueList: 0,\n  ClientRectList: 0,\n  DOMRectList: 0,\n  DOMStringList: 0,\n  DOMTokenList: 1,\n  DataTransferItemList: 0,\n  FileList: 0,\n  HTMLAllCollection: 0,\n  HTMLCollection: 0,\n  HTMLFormElement: 0,\n  HTMLSelectElement: 0,\n  MediaList: 0,\n  MimeTypeArray: 0,\n  NamedNodeMap: 0,\n  NodeList: 1,\n  PaintRequestList: 0,\n  Plugin: 0,\n  PluginArray: 0,\n  SVGLengthList: 0,\n  SVGNumberList: 0,\n  SVGPathSegList: 0,\n  SVGPointList: 0,\n  SVGStringList: 0,\n  SVGTransformList: 0,\n  SourceBufferList: 0,\n  StyleSheetList: 0,\n  TextTrackCueList: 0,\n  TextTrackList: 0,\n  TouchList: 0\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/dom-iterables.js?");
@@ -618,7 +574,6 @@ eval("// iterable DOM collections\n// flag - `iterable` interface - 'entries', '
   \*********************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 3:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var userAgent = __webpack_require__(/*! ../internals/engine-user-agent */ \"./node_modules/core-js/internals/engine-user-agent.js\");\n\nmodule.exports = /(iphone|ipod|ipad).*applewebkit/i.test(userAgent);\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/engine-is-ios.js?");
@@ -631,7 +586,6 @@ eval("var userAgent = __webpack_require__(/*! ../internals/engine-user-agent */ 
   \*************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 3:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var getBuiltIn = __webpack_require__(/*! ../internals/get-built-in */ \"./node_modules/core-js/internals/get-built-in.js\");\n\nmodule.exports = getBuiltIn('navigator', 'userAgent') || '';\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/engine-user-agent.js?");
@@ -644,7 +598,6 @@ eval("var getBuiltIn = __webpack_require__(/*! ../internals/get-built-in */ \"./
   \*************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 20:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var global = __webpack_require__(/*! ../internals/global */ \"./node_modules/core-js/internals/global.js\");\nvar userAgent = __webpack_require__(/*! ../internals/engine-user-agent */ \"./node_modules/core-js/internals/engine-user-agent.js\");\n\nvar process = global.process;\nvar versions = process && process.versions;\nvar v8 = versions && versions.v8;\nvar match, version;\n\nif (v8) {\n  match = v8.split('.');\n  version = match[0] + match[1];\n} else if (userAgent) {\n  match = userAgent.match(/Edge\\/(\\d+)/);\n  if (!match || match[1] >= 74) {\n    match = userAgent.match(/Chrome\\/(\\d+)/);\n    if (match) version = match[1];\n  }\n}\n\nmodule.exports = version && +version;\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/engine-v8-version.js?");
@@ -657,7 +610,6 @@ eval("var global = __webpack_require__(/*! ../internals/global */ \"./node_modul
   \*********************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module */
-/*! CommonJS bailout: module.exports is used directly at 2:0-14 */
 /***/ (function(module) {
 
 eval("// IE8- don't enum bug keys\nmodule.exports = [\n  'constructor',\n  'hasOwnProperty',\n  'isPrototypeOf',\n  'propertyIsEnumerable',\n  'toLocaleString',\n  'toString',\n  'valueOf'\n];\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/enum-bug-keys.js?");
@@ -670,7 +622,6 @@ eval("// IE8- don't enum bug keys\nmodule.exports = [\n  'constructor',\n  'hasO
   \**************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: __webpack_require__, module */
-/*! CommonJS bailout: module.exports is used directly at 23:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var global = __webpack_require__(/*! ../internals/global */ \"./node_modules/core-js/internals/global.js\");\nvar getOwnPropertyDescriptor = __webpack_require__(/*! ../internals/object-get-own-property-descriptor */ \"./node_modules/core-js/internals/object-get-own-property-descriptor.js\").f;\nvar createNonEnumerableProperty = __webpack_require__(/*! ../internals/create-non-enumerable-property */ \"./node_modules/core-js/internals/create-non-enumerable-property.js\");\nvar redefine = __webpack_require__(/*! ../internals/redefine */ \"./node_modules/core-js/internals/redefine.js\");\nvar setGlobal = __webpack_require__(/*! ../internals/set-global */ \"./node_modules/core-js/internals/set-global.js\");\nvar copyConstructorProperties = __webpack_require__(/*! ../internals/copy-constructor-properties */ \"./node_modules/core-js/internals/copy-constructor-properties.js\");\nvar isForced = __webpack_require__(/*! ../internals/is-forced */ \"./node_modules/core-js/internals/is-forced.js\");\n\n/*\n  options.target      - name of the target object\n  options.global      - target is the global object\n  options.stat        - export as static methods of target\n  options.proto       - export as prototype methods of target\n  options.real        - real prototype method for the `pure` version\n  options.forced      - export even if the native feature is available\n  options.bind        - bind methods to the target, required for the `pure` version\n  options.wrap        - wrap constructors to preventing global pollution, required for the `pure` version\n  options.unsafe      - use the simple assignment of property instead of delete + defineProperty\n  options.sham        - add a flag to not completely full polyfills\n  options.enumerable  - export as enumerable property\n  options.noTargetGet - prevent calling a getter on target\n*/\nmodule.exports = function (options, source) {\n  var TARGET = options.target;\n  var GLOBAL = options.global;\n  var STATIC = options.stat;\n  var FORCED, target, key, targetProperty, sourceProperty, descriptor;\n  if (GLOBAL) {\n    target = global;\n  } else if (STATIC) {\n    target = global[TARGET] || setGlobal(TARGET, {});\n  } else {\n    target = (global[TARGET] || {}).prototype;\n  }\n  if (target) for (key in source) {\n    sourceProperty = source[key];\n    if (options.noTargetGet) {\n      descriptor = getOwnPropertyDescriptor(target, key);\n      targetProperty = descriptor && descriptor.value;\n    } else targetProperty = target[key];\n    FORCED = isForced(GLOBAL ? key : TARGET + (STATIC ? '.' : '#') + key, options.forced);\n    // contained in target\n    if (!FORCED && targetProperty !== undefined) {\n      if (typeof sourceProperty === typeof targetProperty) continue;\n      copyConstructorProperties(sourceProperty, targetProperty);\n    }\n    // add a flag to not completely full polyfills\n    if (options.sham || (targetProperty && targetProperty.sham)) {\n      createNonEnumerableProperty(sourceProperty, 'sham', true);\n    }\n    // extend global\n    redefine(target, key, sourceProperty, options);\n  }\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/export.js?");
@@ -683,7 +634,6 @@ eval("var global = __webpack_require__(/*! ../internals/global */ \"./node_modul
   \*************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module */
-/*! CommonJS bailout: module.exports is used directly at 1:0-14 */
 /***/ (function(module) {
 
 eval("module.exports = function (exec) {\n  try {\n    return !!exec();\n  } catch (error) {\n    return true;\n  }\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/fails.js?");
@@ -696,7 +646,6 @@ eval("module.exports = function (exec) {\n  try {\n    return !!exec();\n  } cat
   \******************************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 50:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -710,7 +659,6 @@ eval("\n// TODO: Remove from `core-js@4` since it's moved to entry points\n__web
   \**************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 32:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -724,7 +672,6 @@ eval("\nvar isArray = __webpack_require__(/*! ../internals/is-array */ \"./node_
   \****************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 3:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var fails = __webpack_require__(/*! ../internals/fails */ \"./node_modules/core-js/internals/fails.js\");\n\nmodule.exports = !fails(function () {\n  return Object.isExtensible(Object.preventExtensions({}));\n});\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/freezing.js?");
@@ -737,7 +684,6 @@ eval("var fails = __webpack_require__(/*! ../internals/fails */ \"./node_modules
   \*****************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 4:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var aFunction = __webpack_require__(/*! ../internals/a-function */ \"./node_modules/core-js/internals/a-function.js\");\n\n// optional / simple context binding\nmodule.exports = function (fn, that, length) {\n  aFunction(fn);\n  if (that === undefined) return fn;\n  switch (length) {\n    case 0: return function () {\n      return fn.call(that);\n    };\n    case 1: return function (a) {\n      return fn.call(that, a);\n    };\n    case 2: return function (a, b) {\n      return fn.call(that, a, b);\n    };\n    case 3: return function (a, b, c) {\n      return fn.call(that, a, b, c);\n    };\n  }\n  return function (/* ...args */) {\n    return fn.apply(that, arguments);\n  };\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/function-bind-context.js?");
@@ -750,7 +696,6 @@ eval("var aFunction = __webpack_require__(/*! ../internals/a-function */ \"./nod
   \*********************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 18:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -764,7 +709,6 @@ eval("\nvar aFunction = __webpack_require__(/*! ../internals/a-function */ \"./n
   \********************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 8:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var path = __webpack_require__(/*! ../internals/path */ \"./node_modules/core-js/internals/path.js\");\nvar global = __webpack_require__(/*! ../internals/global */ \"./node_modules/core-js/internals/global.js\");\n\nvar aFunction = function (variable) {\n  return typeof variable == 'function' ? variable : undefined;\n};\n\nmodule.exports = function (namespace, method) {\n  return arguments.length < 2 ? aFunction(path[namespace]) || aFunction(global[namespace])\n    : path[namespace] && path[namespace][method] || global[namespace] && global[namespace][method];\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/get-built-in.js?");
@@ -777,7 +721,6 @@ eval("var path = __webpack_require__(/*! ../internals/path */ \"./node_modules/c
   \***************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 7:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var classof = __webpack_require__(/*! ../internals/classof */ \"./node_modules/core-js/internals/classof.js\");\nvar Iterators = __webpack_require__(/*! ../internals/iterators */ \"./node_modules/core-js/internals/iterators.js\");\nvar wellKnownSymbol = __webpack_require__(/*! ../internals/well-known-symbol */ \"./node_modules/core-js/internals/well-known-symbol.js\");\n\nvar ITERATOR = wellKnownSymbol('iterator');\n\nmodule.exports = function (it) {\n  if (it != undefined) return it[ITERATOR]\n    || it['@@iterator']\n    || Iterators[classof(it)];\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/get-iterator-method.js?");
@@ -790,7 +733,6 @@ eval("var classof = __webpack_require__(/*! ../internals/classof */ \"./node_mod
   \********************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 4:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var anObject = __webpack_require__(/*! ../internals/an-object */ \"./node_modules/core-js/internals/an-object.js\");\nvar getIteratorMethod = __webpack_require__(/*! ../internals/get-iterator-method */ \"./node_modules/core-js/internals/get-iterator-method.js\");\n\nmodule.exports = function (it) {\n  var iteratorMethod = getIteratorMethod(it);\n  if (typeof iteratorMethod != 'function') {\n    throw TypeError(String(it) + ' is not iterable');\n  } return anObject(iteratorMethod.call(it));\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/get-iterator.js?");
@@ -803,7 +745,6 @@ eval("var anObject = __webpack_require__(/*! ../internals/an-object */ \"./node_
   \**************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__.g, __webpack_require__.* */
-/*! CommonJS bailout: module.exports is used directly at 6:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var check = function (it) {\n  return it && it.Math == Math && it;\n};\n\n// https://github.com/zloirock/core-js/issues/86#issuecomment-115759028\nmodule.exports =\n  // eslint-disable-next-line no-undef\n  check(typeof globalThis == 'object' && globalThis) ||\n  check(typeof window == 'object' && window) ||\n  check(typeof self == 'object' && self) ||\n  check(typeof __webpack_require__.g == 'object' && __webpack_require__.g) ||\n  // eslint-disable-next-line no-new-func\n  Function('return this')();\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/global.js?");
@@ -816,7 +757,6 @@ eval("var check = function (it) {\n  return it && it.Math == Math && it;\n};\n\n
   \***********************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module */
-/*! CommonJS bailout: module.exports is used directly at 3:0-14 */
 /***/ (function(module) {
 
 eval("var hasOwnProperty = {}.hasOwnProperty;\n\nmodule.exports = function (it, key) {\n  return hasOwnProperty.call(it, key);\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/has.js?");
@@ -829,7 +769,6 @@ eval("var hasOwnProperty = {}.hasOwnProperty;\n\nmodule.exports = function (it, 
   \*******************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module */
-/*! CommonJS bailout: module.exports is used directly at 1:0-14 */
 /***/ (function(module) {
 
 eval("module.exports = {};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/hidden-keys.js?");
@@ -842,7 +781,6 @@ eval("module.exports = {};\n\n\n//# sourceURL=webpack://beginner2020/./node_modu
   \**************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 3:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var global = __webpack_require__(/*! ../internals/global */ \"./node_modules/core-js/internals/global.js\");\n\nmodule.exports = function (a, b) {\n  var console = global.console;\n  if (console && console.error) {\n    arguments.length === 1 ? console.error(a) : console.error(a, b);\n  }\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/host-report-errors.js?");
@@ -855,7 +793,6 @@ eval("var global = __webpack_require__(/*! ../internals/global */ \"./node_modul
   \************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 3:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var getBuiltIn = __webpack_require__(/*! ../internals/get-built-in */ \"./node_modules/core-js/internals/get-built-in.js\");\n\nmodule.exports = getBuiltIn('document', 'documentElement');\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/html.js?");
@@ -868,7 +805,6 @@ eval("var getBuiltIn = __webpack_require__(/*! ../internals/get-built-in */ \"./
   \**********************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 6:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var DESCRIPTORS = __webpack_require__(/*! ../internals/descriptors */ \"./node_modules/core-js/internals/descriptors.js\");\nvar fails = __webpack_require__(/*! ../internals/fails */ \"./node_modules/core-js/internals/fails.js\");\nvar createElement = __webpack_require__(/*! ../internals/document-create-element */ \"./node_modules/core-js/internals/document-create-element.js\");\n\n// Thank's IE8 for his funny defineProperty\nmodule.exports = !DESCRIPTORS && !fails(function () {\n  return Object.defineProperty(createElement('div'), 'a', {\n    get: function () { return 7; }\n  }).a != 7;\n});\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/ie8-dom-define.js?");
@@ -881,7 +817,6 @@ eval("var DESCRIPTORS = __webpack_require__(/*! ../internals/descriptors */ \"./
   \***************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module */
-/*! CommonJS bailout: module.exports is used directly at 85:0-14 */
 /***/ (function(module) {
 
 eval("// IEEE754 conversions based on https://github.com/feross/ieee754\n// eslint-disable-next-line no-shadow-restricted-names\nvar Infinity = 1 / 0;\nvar abs = Math.abs;\nvar pow = Math.pow;\nvar floor = Math.floor;\nvar log = Math.log;\nvar LN2 = Math.LN2;\n\nvar pack = function (number, mantissaLength, bytes) {\n  var buffer = new Array(bytes);\n  var exponentLength = bytes * 8 - mantissaLength - 1;\n  var eMax = (1 << exponentLength) - 1;\n  var eBias = eMax >> 1;\n  var rt = mantissaLength === 23 ? pow(2, -24) - pow(2, -77) : 0;\n  var sign = number < 0 || number === 0 && 1 / number < 0 ? 1 : 0;\n  var index = 0;\n  var exponent, mantissa, c;\n  number = abs(number);\n  // eslint-disable-next-line no-self-compare\n  if (number != number || number === Infinity) {\n    // eslint-disable-next-line no-self-compare\n    mantissa = number != number ? 1 : 0;\n    exponent = eMax;\n  } else {\n    exponent = floor(log(number) / LN2);\n    if (number * (c = pow(2, -exponent)) < 1) {\n      exponent--;\n      c *= 2;\n    }\n    if (exponent + eBias >= 1) {\n      number += rt / c;\n    } else {\n      number += rt * pow(2, 1 - eBias);\n    }\n    if (number * c >= 2) {\n      exponent++;\n      c /= 2;\n    }\n    if (exponent + eBias >= eMax) {\n      mantissa = 0;\n      exponent = eMax;\n    } else if (exponent + eBias >= 1) {\n      mantissa = (number * c - 1) * pow(2, mantissaLength);\n      exponent = exponent + eBias;\n    } else {\n      mantissa = number * pow(2, eBias - 1) * pow(2, mantissaLength);\n      exponent = 0;\n    }\n  }\n  for (; mantissaLength >= 8; buffer[index++] = mantissa & 255, mantissa /= 256, mantissaLength -= 8);\n  exponent = exponent << mantissaLength | mantissa;\n  exponentLength += mantissaLength;\n  for (; exponentLength > 0; buffer[index++] = exponent & 255, exponent /= 256, exponentLength -= 8);\n  buffer[--index] |= sign * 128;\n  return buffer;\n};\n\nvar unpack = function (buffer, mantissaLength) {\n  var bytes = buffer.length;\n  var exponentLength = bytes * 8 - mantissaLength - 1;\n  var eMax = (1 << exponentLength) - 1;\n  var eBias = eMax >> 1;\n  var nBits = exponentLength - 7;\n  var index = bytes - 1;\n  var sign = buffer[index--];\n  var exponent = sign & 127;\n  var mantissa;\n  sign >>= 7;\n  for (; nBits > 0; exponent = exponent * 256 + buffer[index], index--, nBits -= 8);\n  mantissa = exponent & (1 << -nBits) - 1;\n  exponent >>= -nBits;\n  nBits += mantissaLength;\n  for (; nBits > 0; mantissa = mantissa * 256 + buffer[index], index--, nBits -= 8);\n  if (exponent === 0) {\n    exponent = 1 - eBias;\n  } else if (exponent === eMax) {\n    return mantissa ? NaN : sign ? -Infinity : Infinity;\n  } else {\n    mantissa = mantissa + pow(2, mantissaLength);\n    exponent = exponent - eBias;\n  } return (sign ? -1 : 1) * mantissa * pow(2, exponent - mantissaLength);\n};\n\nmodule.exports = {\n  pack: pack,\n  unpack: unpack\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/ieee754.js?");
@@ -894,7 +829,6 @@ eval("// IEEE754 conversions based on https://github.com/feross/ieee754\n// esli
   \**********************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 7:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var fails = __webpack_require__(/*! ../internals/fails */ \"./node_modules/core-js/internals/fails.js\");\nvar classof = __webpack_require__(/*! ../internals/classof-raw */ \"./node_modules/core-js/internals/classof-raw.js\");\n\nvar split = ''.split;\n\n// fallback for non-array-like ES3 and non-enumerable old V8 strings\nmodule.exports = fails(function () {\n  // throws an error in rhino, see https://github.com/mozilla/rhino/issues/346\n  // eslint-disable-next-line no-prototype-builtins\n  return !Object('z').propertyIsEnumerable(0);\n}) ? function (it) {\n  return classof(it) == 'String' ? split.call(it, '') : Object(it);\n} : Object;\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/indexed-object.js?");
@@ -907,7 +841,6 @@ eval("var fails = __webpack_require__(/*! ../internals/fails */ \"./node_modules
   \***************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 5:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var isObject = __webpack_require__(/*! ../internals/is-object */ \"./node_modules/core-js/internals/is-object.js\");\nvar setPrototypeOf = __webpack_require__(/*! ../internals/object-set-prototype-of */ \"./node_modules/core-js/internals/object-set-prototype-of.js\");\n\n// makes subclassing work correct for wrapped built-ins\nmodule.exports = function ($this, dummy, Wrapper) {\n  var NewTarget, NewTargetPrototype;\n  if (\n    // it can work only with native `setPrototypeOf`\n    setPrototypeOf &&\n    // we haven't completely correct pre-ES6 way for getting `new.target`, so use this\n    typeof (NewTarget = dummy.constructor) == 'function' &&\n    NewTarget !== Wrapper &&\n    isObject(NewTargetPrototype = NewTarget.prototype) &&\n    NewTargetPrototype !== Wrapper.prototype\n  ) setPrototypeOf($this, NewTargetPrototype);\n  return $this;\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/inherit-if-required.js?");
@@ -920,7 +853,6 @@ eval("var isObject = __webpack_require__(/*! ../internals/is-object */ \"./node_
   \**********************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 12:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var store = __webpack_require__(/*! ../internals/shared-store */ \"./node_modules/core-js/internals/shared-store.js\");\n\nvar functionToString = Function.toString;\n\n// this helper broken in `3.4.1-3.4.4`, so we can't use `shared` helper\nif (typeof store.inspectSource != 'function') {\n  store.inspectSource = function (it) {\n    return functionToString.call(it);\n  };\n}\n\nmodule.exports = store.inspectSource;\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/inspect-source.js?");
@@ -933,7 +865,6 @@ eval("var store = __webpack_require__(/*! ../internals/shared-store */ \"./node_
   \*************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: __webpack_require__, module */
-/*! CommonJS bailout: module.exports is used directly at 54:11-25 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var hiddenKeys = __webpack_require__(/*! ../internals/hidden-keys */ \"./node_modules/core-js/internals/hidden-keys.js\");\nvar isObject = __webpack_require__(/*! ../internals/is-object */ \"./node_modules/core-js/internals/is-object.js\");\nvar has = __webpack_require__(/*! ../internals/has */ \"./node_modules/core-js/internals/has.js\");\nvar defineProperty = __webpack_require__(/*! ../internals/object-define-property */ \"./node_modules/core-js/internals/object-define-property.js\").f;\nvar uid = __webpack_require__(/*! ../internals/uid */ \"./node_modules/core-js/internals/uid.js\");\nvar FREEZING = __webpack_require__(/*! ../internals/freezing */ \"./node_modules/core-js/internals/freezing.js\");\n\nvar METADATA = uid('meta');\nvar id = 0;\n\nvar isExtensible = Object.isExtensible || function () {\n  return true;\n};\n\nvar setMetadata = function (it) {\n  defineProperty(it, METADATA, { value: {\n    objectID: 'O' + ++id, // object ID\n    weakData: {}          // weak collections IDs\n  } });\n};\n\nvar fastKey = function (it, create) {\n  // return a primitive with prefix\n  if (!isObject(it)) return typeof it == 'symbol' ? it : (typeof it == 'string' ? 'S' : 'P') + it;\n  if (!has(it, METADATA)) {\n    // can't set metadata to uncaught frozen object\n    if (!isExtensible(it)) return 'F';\n    // not necessary to add metadata\n    if (!create) return 'E';\n    // add missing metadata\n    setMetadata(it);\n  // return object ID\n  } return it[METADATA].objectID;\n};\n\nvar getWeakData = function (it, create) {\n  if (!has(it, METADATA)) {\n    // can't set metadata to uncaught frozen object\n    if (!isExtensible(it)) return true;\n    // not necessary to add metadata\n    if (!create) return false;\n    // add missing metadata\n    setMetadata(it);\n  // return the store of weak collections IDs\n  } return it[METADATA].weakData;\n};\n\n// add metadata on freeze-family methods calling\nvar onFreeze = function (it) {\n  if (FREEZING && meta.REQUIRED && isExtensible(it) && !has(it, METADATA)) setMetadata(it);\n  return it;\n};\n\nvar meta = module.exports = {\n  REQUIRED: false,\n  fastKey: fastKey,\n  getWeakData: getWeakData,\n  onFreeze: onFreeze\n};\n\nhiddenKeys[METADATA] = true;\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/internal-metadata.js?");
@@ -946,7 +877,6 @@ eval("var hiddenKeys = __webpack_require__(/*! ../internals/hidden-keys */ \"./n
   \**********************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 55:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var NATIVE_WEAK_MAP = __webpack_require__(/*! ../internals/native-weak-map */ \"./node_modules/core-js/internals/native-weak-map.js\");\nvar global = __webpack_require__(/*! ../internals/global */ \"./node_modules/core-js/internals/global.js\");\nvar isObject = __webpack_require__(/*! ../internals/is-object */ \"./node_modules/core-js/internals/is-object.js\");\nvar createNonEnumerableProperty = __webpack_require__(/*! ../internals/create-non-enumerable-property */ \"./node_modules/core-js/internals/create-non-enumerable-property.js\");\nvar objectHas = __webpack_require__(/*! ../internals/has */ \"./node_modules/core-js/internals/has.js\");\nvar sharedKey = __webpack_require__(/*! ../internals/shared-key */ \"./node_modules/core-js/internals/shared-key.js\");\nvar hiddenKeys = __webpack_require__(/*! ../internals/hidden-keys */ \"./node_modules/core-js/internals/hidden-keys.js\");\n\nvar WeakMap = global.WeakMap;\nvar set, get, has;\n\nvar enforce = function (it) {\n  return has(it) ? get(it) : set(it, {});\n};\n\nvar getterFor = function (TYPE) {\n  return function (it) {\n    var state;\n    if (!isObject(it) || (state = get(it)).type !== TYPE) {\n      throw TypeError('Incompatible receiver, ' + TYPE + ' required');\n    } return state;\n  };\n};\n\nif (NATIVE_WEAK_MAP) {\n  var store = new WeakMap();\n  var wmget = store.get;\n  var wmhas = store.has;\n  var wmset = store.set;\n  set = function (it, metadata) {\n    wmset.call(store, it, metadata);\n    return metadata;\n  };\n  get = function (it) {\n    return wmget.call(store, it) || {};\n  };\n  has = function (it) {\n    return wmhas.call(store, it);\n  };\n} else {\n  var STATE = sharedKey('state');\n  hiddenKeys[STATE] = true;\n  set = function (it, metadata) {\n    createNonEnumerableProperty(it, STATE, metadata);\n    return metadata;\n  };\n  get = function (it) {\n    return objectHas(it, STATE) ? it[STATE] : {};\n  };\n  has = function (it) {\n    return objectHas(it, STATE);\n  };\n}\n\nmodule.exports = {\n  set: set,\n  get: get,\n  has: has,\n  enforce: enforce,\n  getterFor: getterFor\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/internal-state.js?");
@@ -959,7 +889,6 @@ eval("var NATIVE_WEAK_MAP = __webpack_require__(/*! ../internals/native-weak-map
   \********************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 8:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var wellKnownSymbol = __webpack_require__(/*! ../internals/well-known-symbol */ \"./node_modules/core-js/internals/well-known-symbol.js\");\nvar Iterators = __webpack_require__(/*! ../internals/iterators */ \"./node_modules/core-js/internals/iterators.js\");\n\nvar ITERATOR = wellKnownSymbol('iterator');\nvar ArrayPrototype = Array.prototype;\n\n// check on default Array iterator\nmodule.exports = function (it) {\n  return it !== undefined && (Iterators.Array === it || ArrayPrototype[ITERATOR] === it);\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/is-array-iterator-method.js?");
@@ -972,7 +901,6 @@ eval("var wellKnownSymbol = __webpack_require__(/*! ../internals/well-known-symb
   \****************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 5:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var classof = __webpack_require__(/*! ../internals/classof-raw */ \"./node_modules/core-js/internals/classof-raw.js\");\n\n// `IsArray` abstract operation\n// https://tc39.github.io/ecma262/#sec-isarray\nmodule.exports = Array.isArray || function isArray(arg) {\n  return classof(arg) == 'Array';\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/is-array.js?");
@@ -985,7 +913,6 @@ eval("var classof = __webpack_require__(/*! ../internals/classof-raw */ \"./node
   \*****************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 21:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var fails = __webpack_require__(/*! ../internals/fails */ \"./node_modules/core-js/internals/fails.js\");\n\nvar replacement = /#|\\.prototype\\./;\n\nvar isForced = function (feature, detection) {\n  var value = data[normalize(feature)];\n  return value == POLYFILL ? true\n    : value == NATIVE ? false\n    : typeof detection == 'function' ? fails(detection)\n    : !!detection;\n};\n\nvar normalize = isForced.normalize = function (string) {\n  return String(string).replace(replacement, '.').toLowerCase();\n};\n\nvar data = isForced.data = {};\nvar NATIVE = isForced.NATIVE = 'N';\nvar POLYFILL = isForced.POLYFILL = 'P';\n\nmodule.exports = isForced;\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/is-forced.js?");
@@ -998,7 +925,6 @@ eval("var fails = __webpack_require__(/*! ../internals/fails */ \"./node_modules
   \******************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 7:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var isObject = __webpack_require__(/*! ../internals/is-object */ \"./node_modules/core-js/internals/is-object.js\");\n\nvar floor = Math.floor;\n\n// `Number.isInteger` method implementation\n// https://tc39.github.io/ecma262/#sec-number.isinteger\nmodule.exports = function isInteger(it) {\n  return !isObject(it) && isFinite(it) && floor(it) === it;\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/is-integer.js?");
@@ -1011,7 +937,6 @@ eval("var isObject = __webpack_require__(/*! ../internals/is-object */ \"./node_
   \*****************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module */
-/*! CommonJS bailout: module.exports is used directly at 1:0-14 */
 /***/ (function(module) {
 
 eval("module.exports = function (it) {\n  return typeof it === 'object' ? it !== null : typeof it === 'function';\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/is-object.js?");
@@ -1024,7 +949,6 @@ eval("module.exports = function (it) {\n  return typeof it === 'object' ? it !==
   \***************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module */
-/*! CommonJS bailout: module.exports is used directly at 1:0-14 */
 /***/ (function(module) {
 
 eval("module.exports = false;\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/is-pure.js?");
@@ -1037,7 +961,6 @@ eval("module.exports = false;\n\n\n//# sourceURL=webpack://beginner2020/./node_m
   \*****************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 9:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var isObject = __webpack_require__(/*! ../internals/is-object */ \"./node_modules/core-js/internals/is-object.js\");\nvar classof = __webpack_require__(/*! ../internals/classof-raw */ \"./node_modules/core-js/internals/classof-raw.js\");\nvar wellKnownSymbol = __webpack_require__(/*! ../internals/well-known-symbol */ \"./node_modules/core-js/internals/well-known-symbol.js\");\n\nvar MATCH = wellKnownSymbol('match');\n\n// `IsRegExp` abstract operation\n// https://tc39.github.io/ecma262/#sec-isregexp\nmodule.exports = function (it) {\n  var isRegExp;\n  return isObject(it) && ((isRegExp = it[MATCH]) !== undefined ? !!isRegExp : classof(it) == 'RegExp');\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/is-regexp.js?");
@@ -1050,7 +973,6 @@ eval("var isObject = __webpack_require__(/*! ../internals/is-object */ \"./node_
   \***************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 13:14-28 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var anObject = __webpack_require__(/*! ../internals/an-object */ \"./node_modules/core-js/internals/an-object.js\");\nvar isArrayIteratorMethod = __webpack_require__(/*! ../internals/is-array-iterator-method */ \"./node_modules/core-js/internals/is-array-iterator-method.js\");\nvar toLength = __webpack_require__(/*! ../internals/to-length */ \"./node_modules/core-js/internals/to-length.js\");\nvar bind = __webpack_require__(/*! ../internals/function-bind-context */ \"./node_modules/core-js/internals/function-bind-context.js\");\nvar getIteratorMethod = __webpack_require__(/*! ../internals/get-iterator-method */ \"./node_modules/core-js/internals/get-iterator-method.js\");\nvar callWithSafeIterationClosing = __webpack_require__(/*! ../internals/call-with-safe-iteration-closing */ \"./node_modules/core-js/internals/call-with-safe-iteration-closing.js\");\n\nvar Result = function (stopped, result) {\n  this.stopped = stopped;\n  this.result = result;\n};\n\nvar iterate = module.exports = function (iterable, fn, that, AS_ENTRIES, IS_ITERATOR) {\n  var boundFunction = bind(fn, that, AS_ENTRIES ? 2 : 1);\n  var iterator, iterFn, index, length, result, next, step;\n\n  if (IS_ITERATOR) {\n    iterator = iterable;\n  } else {\n    iterFn = getIteratorMethod(iterable);\n    if (typeof iterFn != 'function') throw TypeError('Target is not iterable');\n    // optimisation for array iterators\n    if (isArrayIteratorMethod(iterFn)) {\n      for (index = 0, length = toLength(iterable.length); length > index; index++) {\n        result = AS_ENTRIES\n          ? boundFunction(anObject(step = iterable[index])[0], step[1])\n          : boundFunction(iterable[index]);\n        if (result && result instanceof Result) return result;\n      } return new Result(false);\n    }\n    iterator = iterFn.call(iterable);\n  }\n\n  next = iterator.next;\n  while (!(step = next.call(iterator)).done) {\n    result = callWithSafeIterationClosing(iterator, boundFunction, step.value, AS_ENTRIES);\n    if (typeof result == 'object' && result && result instanceof Result) return result;\n  } return new Result(false);\n};\n\niterate.stop = function (result) {\n  return new Result(true, result);\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/iterate.js?");
@@ -1063,7 +985,6 @@ eval("var anObject = __webpack_require__(/*! ../internals/an-object */ \"./node_
   \**********************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 34:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -1077,7 +998,6 @@ eval("\nvar getPrototypeOf = __webpack_require__(/*! ../internals/object-get-pro
   \*****************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module */
-/*! CommonJS bailout: module.exports is used directly at 1:0-14 */
 /***/ (function(module) {
 
 eval("module.exports = {};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/iterators.js?");
@@ -1090,7 +1010,6 @@ eval("module.exports = {};\n\n\n//# sourceURL=webpack://beginner2020/./node_modu
   \******************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module */
-/*! CommonJS bailout: module.exports is used directly at 6:0-14 */
 /***/ (function(module) {
 
 eval("var nativeExpm1 = Math.expm1;\nvar exp = Math.exp;\n\n// `Math.expm1` method implementation\n// https://tc39.github.io/ecma262/#sec-math.expm1\nmodule.exports = (!nativeExpm1\n  // Old FF bug\n  || nativeExpm1(10) > 22025.465794806719 || nativeExpm1(10) < 22025.4657948067165168\n  // Tor Browser bug\n  || nativeExpm1(-2e-17) != -2e-17\n) ? function expm1(x) {\n  return (x = +x) == 0 ? x : x > -1e-6 && x < 1e-6 ? x + x * x / 2 : exp(x) - 1;\n} : nativeExpm1;\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/math-expm1.js?");
@@ -1103,7 +1022,6 @@ eval("var nativeExpm1 = Math.expm1;\nvar exp = Math.exp;\n\n// `Math.expm1` meth
   \*******************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 16:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var sign = __webpack_require__(/*! ../internals/math-sign */ \"./node_modules/core-js/internals/math-sign.js\");\n\nvar abs = Math.abs;\nvar pow = Math.pow;\nvar EPSILON = pow(2, -52);\nvar EPSILON32 = pow(2, -23);\nvar MAX32 = pow(2, 127) * (2 - EPSILON32);\nvar MIN32 = pow(2, -126);\n\nvar roundTiesToEven = function (n) {\n  return n + 1 / EPSILON - 1 / EPSILON;\n};\n\n// `Math.fround` method implementation\n// https://tc39.github.io/ecma262/#sec-math.fround\nmodule.exports = Math.fround || function fround(x) {\n  var $abs = abs(x);\n  var $sign = sign(x);\n  var a, result;\n  if ($abs < MIN32) return $sign * roundTiesToEven($abs / MIN32 / EPSILON32) * MIN32 * EPSILON32;\n  a = (1 + EPSILON32 / EPSILON) * $abs;\n  result = a - (a - $abs);\n  // eslint-disable-next-line no-self-compare\n  if (result > MAX32 || result != result) return $sign * Infinity;\n  return $sign * result;\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/math-fround.js?");
@@ -1116,7 +1034,6 @@ eval("var sign = __webpack_require__(/*! ../internals/math-sign */ \"./node_modu
   \******************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module */
-/*! CommonJS bailout: module.exports is used directly at 5:0-14 */
 /***/ (function(module) {
 
 eval("var log = Math.log;\n\n// `Math.log1p` method implementation\n// https://tc39.github.io/ecma262/#sec-math.log1p\nmodule.exports = Math.log1p || function log1p(x) {\n  return (x = +x) > -1e-8 && x < 1e-8 ? x - x * x / 2 : log(1 + x);\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/math-log1p.js?");
@@ -1129,7 +1046,6 @@ eval("var log = Math.log;\n\n// `Math.log1p` method implementation\n// https://t
   \*****************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module */
-/*! CommonJS bailout: module.exports is used directly at 3:0-14 */
 /***/ (function(module) {
 
 eval("// `Math.sign` method implementation\n// https://tc39.github.io/ecma262/#sec-math.sign\nmodule.exports = Math.sign || function sign(x) {\n  // eslint-disable-next-line no-self-compare\n  return (x = +x) == 0 || x != x ? x : x < 0 ? -1 : 1;\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/math-sign.js?");
@@ -1142,7 +1058,6 @@ eval("// `Math.sign` method implementation\n// https://tc39.github.io/ecma262/#s
   \*****************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: __webpack_require__, module */
-/*! CommonJS bailout: module.exports is used directly at 71:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var global = __webpack_require__(/*! ../internals/global */ \"./node_modules/core-js/internals/global.js\");\nvar getOwnPropertyDescriptor = __webpack_require__(/*! ../internals/object-get-own-property-descriptor */ \"./node_modules/core-js/internals/object-get-own-property-descriptor.js\").f;\nvar classof = __webpack_require__(/*! ../internals/classof-raw */ \"./node_modules/core-js/internals/classof-raw.js\");\nvar macrotask = __webpack_require__(/*! ../internals/task */ \"./node_modules/core-js/internals/task.js\").set;\nvar IS_IOS = __webpack_require__(/*! ../internals/engine-is-ios */ \"./node_modules/core-js/internals/engine-is-ios.js\");\n\nvar MutationObserver = global.MutationObserver || global.WebKitMutationObserver;\nvar process = global.process;\nvar Promise = global.Promise;\nvar IS_NODE = classof(process) == 'process';\n// Node.js 11 shows ExperimentalWarning on getting `queueMicrotask`\nvar queueMicrotaskDescriptor = getOwnPropertyDescriptor(global, 'queueMicrotask');\nvar queueMicrotask = queueMicrotaskDescriptor && queueMicrotaskDescriptor.value;\n\nvar flush, head, last, notify, toggle, node, promise, then;\n\n// modern engines have queueMicrotask method\nif (!queueMicrotask) {\n  flush = function () {\n    var parent, fn;\n    if (IS_NODE && (parent = process.domain)) parent.exit();\n    while (head) {\n      fn = head.fn;\n      head = head.next;\n      try {\n        fn();\n      } catch (error) {\n        if (head) notify();\n        else last = undefined;\n        throw error;\n      }\n    } last = undefined;\n    if (parent) parent.enter();\n  };\n\n  // Node.js\n  if (IS_NODE) {\n    notify = function () {\n      process.nextTick(flush);\n    };\n  // browsers with MutationObserver, except iOS - https://github.com/zloirock/core-js/issues/339\n  } else if (MutationObserver && !IS_IOS) {\n    toggle = true;\n    node = document.createTextNode('');\n    new MutationObserver(flush).observe(node, { characterData: true });\n    notify = function () {\n      node.data = toggle = !toggle;\n    };\n  // environments with maybe non-completely correct, but existent Promise\n  } else if (Promise && Promise.resolve) {\n    // Promise.resolve without an argument throws an error in LG WebOS 2\n    promise = Promise.resolve(undefined);\n    then = promise.then;\n    notify = function () {\n      then.call(promise, flush);\n    };\n  // for other environments - macrotask based on:\n  // - setImmediate\n  // - MessageChannel\n  // - window.postMessag\n  // - onreadystatechange\n  // - setTimeout\n  } else {\n    notify = function () {\n      // strange IE + webpack dev server bug - use .call(global)\n      macrotask.call(global, flush);\n    };\n  }\n}\n\nmodule.exports = queueMicrotask || function (fn) {\n  var task = { fn: fn, next: undefined };\n  if (last) last.next = task;\n  if (!head) {\n    head = task;\n    notify();\n  } last = task;\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/microtask.js?");
@@ -1155,7 +1070,6 @@ eval("var global = __webpack_require__(/*! ../internals/global */ \"./node_modul
   \**********************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 3:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var global = __webpack_require__(/*! ../internals/global */ \"./node_modules/core-js/internals/global.js\");\n\nmodule.exports = global.Promise;\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/native-promise-constructor.js?");
@@ -1168,7 +1082,6 @@ eval("var global = __webpack_require__(/*! ../internals/global */ \"./node_modul
   \*********************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 3:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var fails = __webpack_require__(/*! ../internals/fails */ \"./node_modules/core-js/internals/fails.js\");\n\nmodule.exports = !!Object.getOwnPropertySymbols && !fails(function () {\n  // Chrome 38 Symbol has incorrect toString conversion\n  // eslint-disable-next-line no-undef\n  return !String(Symbol());\n});\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/native-symbol.js?");
@@ -1181,7 +1094,6 @@ eval("var fails = __webpack_require__(/*! ../internals/fails */ \"./node_modules
   \******************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 7:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var fails = __webpack_require__(/*! ../internals/fails */ \"./node_modules/core-js/internals/fails.js\");\nvar wellKnownSymbol = __webpack_require__(/*! ../internals/well-known-symbol */ \"./node_modules/core-js/internals/well-known-symbol.js\");\nvar IS_PURE = __webpack_require__(/*! ../internals/is-pure */ \"./node_modules/core-js/internals/is-pure.js\");\n\nvar ITERATOR = wellKnownSymbol('iterator');\n\nmodule.exports = !fails(function () {\n  var url = new URL('b?a=1&b=2&c=3', 'http://a');\n  var searchParams = url.searchParams;\n  var result = '';\n  url.pathname = 'c%20d';\n  searchParams.forEach(function (value, key) {\n    searchParams['delete']('b');\n    result += key + value;\n  });\n  return (IS_PURE && !url.toJSON)\n    || !searchParams.sort\n    || url.href !== 'http://a/c%20d?a=1&c=3'\n    || searchParams.get('c') !== '3'\n    || String(new URLSearchParams('?a=1')) !== 'a=1'\n    || !searchParams[ITERATOR]\n    // throws in Edge\n    || new URL('https://a@b').username !== 'a'\n    || new URLSearchParams(new URLSearchParams('a=b')).get('a') !== 'b'\n    // not punycoded in Edge\n    || new URL('http://тест').host !== 'xn--e1aybc'\n    // not escaped in Chrome 62-\n    || new URL('http://a#б').hash !== '#%D0%B1'\n    // fails in Chrome 66-\n    || result !== 'a1c3'\n    // throws in Safari\n    || new URL('http://x', undefined).host !== 'x';\n});\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/native-url.js?");
@@ -1194,7 +1106,6 @@ eval("var fails = __webpack_require__(/*! ../internals/fails */ \"./node_modules
   \***********************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 6:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var global = __webpack_require__(/*! ../internals/global */ \"./node_modules/core-js/internals/global.js\");\nvar inspectSource = __webpack_require__(/*! ../internals/inspect-source */ \"./node_modules/core-js/internals/inspect-source.js\");\n\nvar WeakMap = global.WeakMap;\n\nmodule.exports = typeof WeakMap === 'function' && /native code/.test(inspectSource(WeakMap));\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/native-weak-map.js?");
@@ -1222,7 +1133,6 @@ eval("\nvar aFunction = __webpack_require__(/*! ../internals/a-function */ \"./n
   \********************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 3:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var isRegExp = __webpack_require__(/*! ../internals/is-regexp */ \"./node_modules/core-js/internals/is-regexp.js\");\n\nmodule.exports = function (it) {\n  if (isRegExp(it)) {\n    throw TypeError(\"The method doesn't accept regular expressions\");\n  } return it;\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/not-a-regexp.js?");
@@ -1235,7 +1145,6 @@ eval("var isRegExp = __webpack_require__(/*! ../internals/is-regexp */ \"./node_
   \************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 7:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var global = __webpack_require__(/*! ../internals/global */ \"./node_modules/core-js/internals/global.js\");\n\nvar globalIsFinite = global.isFinite;\n\n// `Number.isFinite` method\n// https://tc39.github.io/ecma262/#sec-number.isfinite\nmodule.exports = Number.isFinite || function isFinite(it) {\n  return typeof it == 'number' && globalIsFinite(it);\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/number-is-finite.js?");
@@ -1248,7 +1157,6 @@ eval("var global = __webpack_require__(/*! ../internals/global */ \"./node_modul
   \**************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: __webpack_require__, module */
-/*! CommonJS bailout: module.exports is used directly at 10:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var global = __webpack_require__(/*! ../internals/global */ \"./node_modules/core-js/internals/global.js\");\nvar trim = __webpack_require__(/*! ../internals/string-trim */ \"./node_modules/core-js/internals/string-trim.js\").trim;\nvar whitespaces = __webpack_require__(/*! ../internals/whitespaces */ \"./node_modules/core-js/internals/whitespaces.js\");\n\nvar $parseFloat = global.parseFloat;\nvar FORCED = 1 / $parseFloat(whitespaces + '-0') !== -Infinity;\n\n// `parseFloat` method\n// https://tc39.github.io/ecma262/#sec-parsefloat-string\nmodule.exports = FORCED ? function parseFloat(string) {\n  var trimmedString = trim(String(string));\n  var result = $parseFloat(trimmedString);\n  return result === 0 && trimmedString.charAt(0) == '-' ? -0 : result;\n} : $parseFloat;\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/number-parse-float.js?");
@@ -1261,7 +1169,6 @@ eval("var global = __webpack_require__(/*! ../internals/global */ \"./node_modul
   \************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: __webpack_require__, module */
-/*! CommonJS bailout: module.exports is used directly at 11:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var global = __webpack_require__(/*! ../internals/global */ \"./node_modules/core-js/internals/global.js\");\nvar trim = __webpack_require__(/*! ../internals/string-trim */ \"./node_modules/core-js/internals/string-trim.js\").trim;\nvar whitespaces = __webpack_require__(/*! ../internals/whitespaces */ \"./node_modules/core-js/internals/whitespaces.js\");\n\nvar $parseInt = global.parseInt;\nvar hex = /^[+-]?0[Xx]/;\nvar FORCED = $parseInt(whitespaces + '08') !== 8 || $parseInt(whitespaces + '0x16') !== 22;\n\n// `parseInt` method\n// https://tc39.github.io/ecma262/#sec-parseint-string-radix\nmodule.exports = FORCED ? function parseInt(string, radix) {\n  var S = trim(String(string));\n  return $parseInt(S, (radix >>> 0) || (hex.test(S) ? 16 : 10));\n} : $parseInt;\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/number-parse-int.js?");
@@ -1274,7 +1181,6 @@ eval("var global = __webpack_require__(/*! ../internals/global */ \"./node_modul
   \*********************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 15:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -1288,7 +1194,6 @@ eval("\nvar DESCRIPTORS = __webpack_require__(/*! ../internals/descriptors */ \"
   \*********************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 68:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var anObject = __webpack_require__(/*! ../internals/an-object */ \"./node_modules/core-js/internals/an-object.js\");\nvar defineProperties = __webpack_require__(/*! ../internals/object-define-properties */ \"./node_modules/core-js/internals/object-define-properties.js\");\nvar enumBugKeys = __webpack_require__(/*! ../internals/enum-bug-keys */ \"./node_modules/core-js/internals/enum-bug-keys.js\");\nvar hiddenKeys = __webpack_require__(/*! ../internals/hidden-keys */ \"./node_modules/core-js/internals/hidden-keys.js\");\nvar html = __webpack_require__(/*! ../internals/html */ \"./node_modules/core-js/internals/html.js\");\nvar documentCreateElement = __webpack_require__(/*! ../internals/document-create-element */ \"./node_modules/core-js/internals/document-create-element.js\");\nvar sharedKey = __webpack_require__(/*! ../internals/shared-key */ \"./node_modules/core-js/internals/shared-key.js\");\n\nvar GT = '>';\nvar LT = '<';\nvar PROTOTYPE = 'prototype';\nvar SCRIPT = 'script';\nvar IE_PROTO = sharedKey('IE_PROTO');\n\nvar EmptyConstructor = function () { /* empty */ };\n\nvar scriptTag = function (content) {\n  return LT + SCRIPT + GT + content + LT + '/' + SCRIPT + GT;\n};\n\n// Create object with fake `null` prototype: use ActiveX Object with cleared prototype\nvar NullProtoObjectViaActiveX = function (activeXDocument) {\n  activeXDocument.write(scriptTag(''));\n  activeXDocument.close();\n  var temp = activeXDocument.parentWindow.Object;\n  activeXDocument = null; // avoid memory leak\n  return temp;\n};\n\n// Create object with fake `null` prototype: use iframe Object with cleared prototype\nvar NullProtoObjectViaIFrame = function () {\n  // Thrash, waste and sodomy: IE GC bug\n  var iframe = documentCreateElement('iframe');\n  var JS = 'java' + SCRIPT + ':';\n  var iframeDocument;\n  iframe.style.display = 'none';\n  html.appendChild(iframe);\n  // https://github.com/zloirock/core-js/issues/475\n  iframe.src = String(JS);\n  iframeDocument = iframe.contentWindow.document;\n  iframeDocument.open();\n  iframeDocument.write(scriptTag('document.F=Object'));\n  iframeDocument.close();\n  return iframeDocument.F;\n};\n\n// Check for document.domain and active x support\n// No need to use active x approach when document.domain is not set\n// see https://github.com/es-shims/es5-shim/issues/150\n// variation of https://github.com/kitcambridge/es5-shim/commit/4f738ac066346\n// avoid IE GC bug\nvar activeXDocument;\nvar NullProtoObject = function () {\n  try {\n    /* global ActiveXObject */\n    activeXDocument = document.domain && new ActiveXObject('htmlfile');\n  } catch (error) { /* ignore */ }\n  NullProtoObject = activeXDocument ? NullProtoObjectViaActiveX(activeXDocument) : NullProtoObjectViaIFrame();\n  var length = enumBugKeys.length;\n  while (length--) delete NullProtoObject[PROTOTYPE][enumBugKeys[length]];\n  return NullProtoObject();\n};\n\nhiddenKeys[IE_PROTO] = true;\n\n// `Object.create` method\n// https://tc39.github.io/ecma262/#sec-object.create\nmodule.exports = Object.create || function create(O, Properties) {\n  var result;\n  if (O !== null) {\n    EmptyConstructor[PROTOTYPE] = anObject(O);\n    result = new EmptyConstructor();\n    EmptyConstructor[PROTOTYPE] = null;\n    // add \"__proto__\" for Object.getPrototypeOf polyfill\n    result[IE_PROTO] = O;\n  } else result = NullProtoObject();\n  return Properties === undefined ? result : defineProperties(result, Properties);\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/object-create.js?");
@@ -1301,7 +1206,6 @@ eval("var anObject = __webpack_require__(/*! ../internals/an-object */ \"./node_
   \********************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 8:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var DESCRIPTORS = __webpack_require__(/*! ../internals/descriptors */ \"./node_modules/core-js/internals/descriptors.js\");\nvar definePropertyModule = __webpack_require__(/*! ../internals/object-define-property */ \"./node_modules/core-js/internals/object-define-property.js\");\nvar anObject = __webpack_require__(/*! ../internals/an-object */ \"./node_modules/core-js/internals/an-object.js\");\nvar objectKeys = __webpack_require__(/*! ../internals/object-keys */ \"./node_modules/core-js/internals/object-keys.js\");\n\n// `Object.defineProperties` method\n// https://tc39.github.io/ecma262/#sec-object.defineproperties\nmodule.exports = DESCRIPTORS ? Object.defineProperties : function defineProperties(O, Properties) {\n  anObject(O);\n  var keys = objectKeys(Properties);\n  var length = keys.length;\n  var index = 0;\n  var key;\n  while (length > index) definePropertyModule.f(O, key = keys[index++], Properties[key]);\n  return O;\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/object-define-properties.js?");
@@ -1384,7 +1288,6 @@ eval("exports.f = Object.getOwnPropertySymbols;\n\n\n//# sourceURL=webpack://beg
   \*******************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 11:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var has = __webpack_require__(/*! ../internals/has */ \"./node_modules/core-js/internals/has.js\");\nvar toObject = __webpack_require__(/*! ../internals/to-object */ \"./node_modules/core-js/internals/to-object.js\");\nvar sharedKey = __webpack_require__(/*! ../internals/shared-key */ \"./node_modules/core-js/internals/shared-key.js\");\nvar CORRECT_PROTOTYPE_GETTER = __webpack_require__(/*! ../internals/correct-prototype-getter */ \"./node_modules/core-js/internals/correct-prototype-getter.js\");\n\nvar IE_PROTO = sharedKey('IE_PROTO');\nvar ObjectPrototype = Object.prototype;\n\n// `Object.getPrototypeOf` method\n// https://tc39.github.io/ecma262/#sec-object.getprototypeof\nmodule.exports = CORRECT_PROTOTYPE_GETTER ? Object.getPrototypeOf : function (O) {\n  O = toObject(O);\n  if (has(O, IE_PROTO)) return O[IE_PROTO];\n  if (typeof O.constructor == 'function' && O instanceof O.constructor) {\n    return O.constructor.prototype;\n  } return O instanceof Object ? ObjectPrototype : null;\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/object-get-prototype-of.js?");
@@ -1397,7 +1300,6 @@ eval("var has = __webpack_require__(/*! ../internals/has */ \"./node_modules/cor
   \****************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: __webpack_require__, module */
-/*! CommonJS bailout: module.exports is used directly at 6:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var has = __webpack_require__(/*! ../internals/has */ \"./node_modules/core-js/internals/has.js\");\nvar toIndexedObject = __webpack_require__(/*! ../internals/to-indexed-object */ \"./node_modules/core-js/internals/to-indexed-object.js\");\nvar indexOf = __webpack_require__(/*! ../internals/array-includes */ \"./node_modules/core-js/internals/array-includes.js\").indexOf;\nvar hiddenKeys = __webpack_require__(/*! ../internals/hidden-keys */ \"./node_modules/core-js/internals/hidden-keys.js\");\n\nmodule.exports = function (object, names) {\n  var O = toIndexedObject(object);\n  var i = 0;\n  var result = [];\n  var key;\n  for (key in O) !has(hiddenKeys, key) && has(O, key) && result.push(key);\n  // Don't enum bug & hidden keys\n  while (names.length > i) if (has(O, key = names[i++])) {\n    ~indexOf(result, key) || result.push(key);\n  }\n  return result;\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/object-keys-internal.js?");
@@ -1410,7 +1312,6 @@ eval("var has = __webpack_require__(/*! ../internals/has */ \"./node_modules/cor
   \*******************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 6:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var internalObjectKeys = __webpack_require__(/*! ../internals/object-keys-internal */ \"./node_modules/core-js/internals/object-keys-internal.js\");\nvar enumBugKeys = __webpack_require__(/*! ../internals/enum-bug-keys */ \"./node_modules/core-js/internals/enum-bug-keys.js\");\n\n// `Object.keys` method\n// https://tc39.github.io/ecma262/#sec-object.keys\nmodule.exports = Object.keys || function keys(O) {\n  return internalObjectKeys(O, enumBugKeys);\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/object-keys.js?");
@@ -1438,7 +1339,6 @@ eval("\nvar nativePropertyIsEnumerable = {}.propertyIsEnumerable;\nvar getOwnPro
   \*****************************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 7:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -1452,7 +1352,6 @@ eval("\nvar IS_PURE = __webpack_require__(/*! ../internals/is-pure */ \"./node_m
   \*******************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 8:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var anObject = __webpack_require__(/*! ../internals/an-object */ \"./node_modules/core-js/internals/an-object.js\");\nvar aPossiblePrototype = __webpack_require__(/*! ../internals/a-possible-prototype */ \"./node_modules/core-js/internals/a-possible-prototype.js\");\n\n// `Object.setPrototypeOf` method\n// https://tc39.github.io/ecma262/#sec-object.setprototypeof\n// Works with __proto__ only. Old v8 can't work with null proto objects.\n/* eslint-disable no-proto */\nmodule.exports = Object.setPrototypeOf || ('__proto__' in {} ? function () {\n  var CORRECT_SETTER = false;\n  var test = {};\n  var setter;\n  try {\n    setter = Object.getOwnPropertyDescriptor(Object.prototype, '__proto__').set;\n    setter.call(test, []);\n    CORRECT_SETTER = test instanceof Array;\n  } catch (error) { /* empty */ }\n  return function setPrototypeOf(O, proto) {\n    anObject(O);\n    aPossiblePrototype(proto);\n    if (CORRECT_SETTER) setter.call(O, proto);\n    else O.__proto__ = proto;\n    return O;\n  };\n}() : undefined);\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/object-set-prototype-of.js?");
@@ -1465,7 +1364,6 @@ eval("var anObject = __webpack_require__(/*! ../internals/an-object */ \"./node_
   \***********************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: __webpack_require__, module */
-/*! CommonJS bailout: module.exports is used directly at 25:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var DESCRIPTORS = __webpack_require__(/*! ../internals/descriptors */ \"./node_modules/core-js/internals/descriptors.js\");\nvar objectKeys = __webpack_require__(/*! ../internals/object-keys */ \"./node_modules/core-js/internals/object-keys.js\");\nvar toIndexedObject = __webpack_require__(/*! ../internals/to-indexed-object */ \"./node_modules/core-js/internals/to-indexed-object.js\");\nvar propertyIsEnumerable = __webpack_require__(/*! ../internals/object-property-is-enumerable */ \"./node_modules/core-js/internals/object-property-is-enumerable.js\").f;\n\n// `Object.{ entries, values }` methods implementation\nvar createMethod = function (TO_ENTRIES) {\n  return function (it) {\n    var O = toIndexedObject(it);\n    var keys = objectKeys(O);\n    var length = keys.length;\n    var i = 0;\n    var result = [];\n    var key;\n    while (length > i) {\n      key = keys[i++];\n      if (!DESCRIPTORS || propertyIsEnumerable.call(O, key)) {\n        result.push(TO_ENTRIES ? [key, O[key]] : O[key]);\n      }\n    }\n    return result;\n  };\n};\n\nmodule.exports = {\n  // `Object.entries` method\n  // https://tc39.github.io/ecma262/#sec-object.entries\n  entries: createMethod(true),\n  // `Object.values` method\n  // https://tc39.github.io/ecma262/#sec-object.values\n  values: createMethod(false)\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/object-to-array.js?");
@@ -1478,7 +1376,6 @@ eval("var DESCRIPTORS = __webpack_require__(/*! ../internals/descriptors */ \"./
   \************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 7:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -1492,7 +1389,6 @@ eval("\nvar TO_STRING_TAG_SUPPORT = __webpack_require__(/*! ../internals/to-stri
   \****************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 7:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var getBuiltIn = __webpack_require__(/*! ../internals/get-built-in */ \"./node_modules/core-js/internals/get-built-in.js\");\nvar getOwnPropertyNamesModule = __webpack_require__(/*! ../internals/object-get-own-property-names */ \"./node_modules/core-js/internals/object-get-own-property-names.js\");\nvar getOwnPropertySymbolsModule = __webpack_require__(/*! ../internals/object-get-own-property-symbols */ \"./node_modules/core-js/internals/object-get-own-property-symbols.js\");\nvar anObject = __webpack_require__(/*! ../internals/an-object */ \"./node_modules/core-js/internals/an-object.js\");\n\n// all object keys, includes non-enumerable and symbols\nmodule.exports = getBuiltIn('Reflect', 'ownKeys') || function ownKeys(it) {\n  var keys = getOwnPropertyNamesModule.f(anObject(it));\n  var getOwnPropertySymbols = getOwnPropertySymbolsModule.f;\n  return getOwnPropertySymbols ? keys.concat(getOwnPropertySymbols(it)) : keys;\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/own-keys.js?");
@@ -1505,7 +1401,6 @@ eval("var getBuiltIn = __webpack_require__(/*! ../internals/get-built-in */ \"./
   \************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 3:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var global = __webpack_require__(/*! ../internals/global */ \"./node_modules/core-js/internals/global.js\");\n\nmodule.exports = global;\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/path.js?");
@@ -1518,7 +1413,6 @@ eval("var global = __webpack_require__(/*! ../internals/global */ \"./node_modul
   \***************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module */
-/*! CommonJS bailout: module.exports is used directly at 1:0-14 */
 /***/ (function(module) {
 
 eval("module.exports = function (exec) {\n  try {\n    return { error: false, value: exec() };\n  } catch (error) {\n    return { error: true, value: error };\n  }\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/perform.js?");
@@ -1531,7 +1425,6 @@ eval("module.exports = function (exec) {\n  try {\n    return { error: false, va
   \***********************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 5:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var anObject = __webpack_require__(/*! ../internals/an-object */ \"./node_modules/core-js/internals/an-object.js\");\nvar isObject = __webpack_require__(/*! ../internals/is-object */ \"./node_modules/core-js/internals/is-object.js\");\nvar newPromiseCapability = __webpack_require__(/*! ../internals/new-promise-capability */ \"./node_modules/core-js/internals/new-promise-capability.js\");\n\nmodule.exports = function (C, x) {\n  anObject(C);\n  if (isObject(x) && x.constructor === C) return x;\n  var promiseCapability = newPromiseCapability.f(C);\n  var resolve = promiseCapability.resolve;\n  resolve(x);\n  return promiseCapability.promise;\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/promise-resolve.js?");
@@ -1544,7 +1437,6 @@ eval("var anObject = __webpack_require__(/*! ../internals/an-object */ \"./node_
   \********************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 3:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var redefine = __webpack_require__(/*! ../internals/redefine */ \"./node_modules/core-js/internals/redefine.js\");\n\nmodule.exports = function (target, src, options) {\n  for (var key in src) redefine(target, key, src[key], options);\n  return target;\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/redefine-all.js?");
@@ -1557,7 +1449,6 @@ eval("var redefine = __webpack_require__(/*! ../internals/redefine */ \"./node_m
   \****************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 12:1-15 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var global = __webpack_require__(/*! ../internals/global */ \"./node_modules/core-js/internals/global.js\");\nvar createNonEnumerableProperty = __webpack_require__(/*! ../internals/create-non-enumerable-property */ \"./node_modules/core-js/internals/create-non-enumerable-property.js\");\nvar has = __webpack_require__(/*! ../internals/has */ \"./node_modules/core-js/internals/has.js\");\nvar setGlobal = __webpack_require__(/*! ../internals/set-global */ \"./node_modules/core-js/internals/set-global.js\");\nvar inspectSource = __webpack_require__(/*! ../internals/inspect-source */ \"./node_modules/core-js/internals/inspect-source.js\");\nvar InternalStateModule = __webpack_require__(/*! ../internals/internal-state */ \"./node_modules/core-js/internals/internal-state.js\");\n\nvar getInternalState = InternalStateModule.get;\nvar enforceInternalState = InternalStateModule.enforce;\nvar TEMPLATE = String(String).split('String');\n\n(module.exports = function (O, key, value, options) {\n  var unsafe = options ? !!options.unsafe : false;\n  var simple = options ? !!options.enumerable : false;\n  var noTargetGet = options ? !!options.noTargetGet : false;\n  if (typeof value == 'function') {\n    if (typeof key == 'string' && !has(value, 'name')) createNonEnumerableProperty(value, 'name', key);\n    enforceInternalState(value).source = TEMPLATE.join(typeof key == 'string' ? key : '');\n  }\n  if (O === global) {\n    if (simple) O[key] = value;\n    else setGlobal(key, value);\n    return;\n  } else if (!unsafe) {\n    delete O[key];\n  } else if (!noTargetGet && O[key]) {\n    simple = true;\n  }\n  if (simple) O[key] = value;\n  else createNonEnumerableProperty(O, key, value);\n// add fake Function#toString for correct work wrapped methods / constructors with methods like LoDash isNative\n})(Function.prototype, 'toString', function toString() {\n  return typeof this == 'function' && getInternalState(this).source || inspectSource(this);\n});\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/redefine.js?");
@@ -1570,7 +1461,6 @@ eval("var global = __webpack_require__(/*! ../internals/global */ \"./node_modul
   \****************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 6:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var classof = __webpack_require__(/*! ./classof-raw */ \"./node_modules/core-js/internals/classof-raw.js\");\nvar regexpExec = __webpack_require__(/*! ./regexp-exec */ \"./node_modules/core-js/internals/regexp-exec.js\");\n\n// `RegExpExec` abstract operation\n// https://tc39.github.io/ecma262/#sec-regexpexec\nmodule.exports = function (R, S) {\n  var exec = R.exec;\n  if (typeof exec === 'function') {\n    var result = exec.call(R, S);\n    if (typeof result !== 'object') {\n      throw TypeError('RegExp exec method returned something other than an Object or null');\n    }\n    return result;\n  }\n\n  if (classof(R) !== 'RegExp') {\n    throw TypeError('RegExp#exec called on incompatible receiver');\n  }\n\n  return regexpExec.call(R, S);\n};\n\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/regexp-exec-abstract.js?");
@@ -1583,7 +1473,6 @@ eval("var classof = __webpack_require__(/*! ./classof-raw */ \"./node_modules/co
   \*******************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 87:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -1597,7 +1486,6 @@ eval("\nvar regexpFlags = __webpack_require__(/*! ./regexp-flags */ \"./node_mod
   \********************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 6:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -1627,7 +1515,6 @@ eval("\n\nvar fails = __webpack_require__(/*! ./fails */ \"./node_modules/core-j
   \********************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module */
-/*! CommonJS bailout: module.exports is used directly at 3:0-14 */
 /***/ (function(module) {
 
 eval("// `RequireObjectCoercible` abstract operation\n// https://tc39.github.io/ecma262/#sec-requireobjectcoercible\nmodule.exports = function (it) {\n  if (it == undefined) throw TypeError(\"Can't call method on \" + it);\n  return it;\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/require-object-coercible.js?");
@@ -1640,7 +1527,6 @@ eval("// `RequireObjectCoercible` abstract operation\n// https://tc39.github.io/
   \******************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module */
-/*! CommonJS bailout: module.exports is used directly at 3:0-14 */
 /***/ (function(module) {
 
 eval("// `SameValue` abstract operation\n// https://tc39.github.io/ecma262/#sec-samevalue\nmodule.exports = Object.is || function is(x, y) {\n  // eslint-disable-next-line no-self-compare\n  return x === y ? x !== 0 || 1 / x === 1 / y : x != x && y != y;\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/same-value.js?");
@@ -1653,7 +1539,6 @@ eval("// `SameValue` abstract operation\n// https://tc39.github.io/ecma262/#sec-
   \******************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 4:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var global = __webpack_require__(/*! ../internals/global */ \"./node_modules/core-js/internals/global.js\");\nvar createNonEnumerableProperty = __webpack_require__(/*! ../internals/create-non-enumerable-property */ \"./node_modules/core-js/internals/create-non-enumerable-property.js\");\n\nmodule.exports = function (key, value) {\n  try {\n    createNonEnumerableProperty(global, key, value);\n  } catch (error) {\n    global[key] = value;\n  } return value;\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/set-global.js?");
@@ -1666,7 +1551,6 @@ eval("var global = __webpack_require__(/*! ../internals/global */ \"./node_modul
   \*******************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 9:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -1680,7 +1564,6 @@ eval("\nvar getBuiltIn = __webpack_require__(/*! ../internals/get-built-in */ \"
   \*************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: __webpack_require__, module */
-/*! CommonJS bailout: module.exports is used directly at 7:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var defineProperty = __webpack_require__(/*! ../internals/object-define-property */ \"./node_modules/core-js/internals/object-define-property.js\").f;\nvar has = __webpack_require__(/*! ../internals/has */ \"./node_modules/core-js/internals/has.js\");\nvar wellKnownSymbol = __webpack_require__(/*! ../internals/well-known-symbol */ \"./node_modules/core-js/internals/well-known-symbol.js\");\n\nvar TO_STRING_TAG = wellKnownSymbol('toStringTag');\n\nmodule.exports = function (it, TAG, STATIC) {\n  if (it && !has(it = STATIC ? it : it.prototype, TO_STRING_TAG)) {\n    defineProperty(it, TO_STRING_TAG, { configurable: true, value: TAG });\n  }\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/set-to-string-tag.js?");
@@ -1693,7 +1576,6 @@ eval("var defineProperty = __webpack_require__(/*! ../internals/object-define-pr
   \******************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 6:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var shared = __webpack_require__(/*! ../internals/shared */ \"./node_modules/core-js/internals/shared.js\");\nvar uid = __webpack_require__(/*! ../internals/uid */ \"./node_modules/core-js/internals/uid.js\");\n\nvar keys = shared('keys');\n\nmodule.exports = function (key) {\n  return keys[key] || (keys[key] = uid(key));\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/shared-key.js?");
@@ -1706,7 +1588,6 @@ eval("var shared = __webpack_require__(/*! ../internals/shared */ \"./node_modul
   \********************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 7:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var global = __webpack_require__(/*! ../internals/global */ \"./node_modules/core-js/internals/global.js\");\nvar setGlobal = __webpack_require__(/*! ../internals/set-global */ \"./node_modules/core-js/internals/set-global.js\");\n\nvar SHARED = '__core-js_shared__';\nvar store = global[SHARED] || setGlobal(SHARED, {});\n\nmodule.exports = store;\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/shared-store.js?");
@@ -1719,7 +1600,6 @@ eval("var global = __webpack_require__(/*! ../internals/global */ \"./node_modul
   \**************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 4:1-15 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var IS_PURE = __webpack_require__(/*! ../internals/is-pure */ \"./node_modules/core-js/internals/is-pure.js\");\nvar store = __webpack_require__(/*! ../internals/shared-store */ \"./node_modules/core-js/internals/shared-store.js\");\n\n(module.exports = function (key, value) {\n  return store[key] || (store[key] = value !== undefined ? value : {});\n})('versions', []).push({\n  version: '3.6.5',\n  mode: IS_PURE ? 'pure' : 'global',\n  copyright: '© 2020 Denis Pushkarev (zloirock.ru)'\n});\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/shared.js?");
@@ -1732,7 +1612,6 @@ eval("var IS_PURE = __webpack_require__(/*! ../internals/is-pure */ \"./node_mod
   \***************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 9:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var anObject = __webpack_require__(/*! ../internals/an-object */ \"./node_modules/core-js/internals/an-object.js\");\nvar aFunction = __webpack_require__(/*! ../internals/a-function */ \"./node_modules/core-js/internals/a-function.js\");\nvar wellKnownSymbol = __webpack_require__(/*! ../internals/well-known-symbol */ \"./node_modules/core-js/internals/well-known-symbol.js\");\n\nvar SPECIES = wellKnownSymbol('species');\n\n// `SpeciesConstructor` abstract operation\n// https://tc39.github.io/ecma262/#sec-speciesconstructor\nmodule.exports = function (O, defaultConstructor) {\n  var C = anObject(O).constructor;\n  var S;\n  return C === undefined || (S = anObject(C)[SPECIES]) == undefined ? defaultConstructor : aFunction(S);\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/species-constructor.js?");
@@ -1745,7 +1624,6 @@ eval("var anObject = __webpack_require__(/*! ../internals/an-object */ \"./node_
   \**************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 5:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var fails = __webpack_require__(/*! ../internals/fails */ \"./node_modules/core-js/internals/fails.js\");\n\n// check the existence of a method, lowercase\n// of a tag and escaping quotes in arguments\nmodule.exports = function (METHOD_NAME) {\n  return fails(function () {\n    var test = ''[METHOD_NAME]('\"');\n    return test !== test.toLowerCase() || test.split('\"').length > 3;\n  });\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/string-html-forced.js?");
@@ -1758,7 +1636,6 @@ eval("var fails = __webpack_require__(/*! ../internals/fails */ \"./node_modules
   \************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 20:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var toInteger = __webpack_require__(/*! ../internals/to-integer */ \"./node_modules/core-js/internals/to-integer.js\");\nvar requireObjectCoercible = __webpack_require__(/*! ../internals/require-object-coercible */ \"./node_modules/core-js/internals/require-object-coercible.js\");\n\n// `String.prototype.{ codePointAt, at }` methods implementation\nvar createMethod = function (CONVERT_TO_STRING) {\n  return function ($this, pos) {\n    var S = String(requireObjectCoercible($this));\n    var position = toInteger(pos);\n    var size = S.length;\n    var first, second;\n    if (position < 0 || position >= size) return CONVERT_TO_STRING ? '' : undefined;\n    first = S.charCodeAt(position);\n    return first < 0xD800 || first > 0xDBFF || position + 1 === size\n      || (second = S.charCodeAt(position + 1)) < 0xDC00 || second > 0xDFFF\n        ? CONVERT_TO_STRING ? S.charAt(position) : first\n        : CONVERT_TO_STRING ? S.slice(position, position + 2) : (first - 0xD800 << 10) + (second - 0xDC00) + 0x10000;\n  };\n};\n\nmodule.exports = {\n  // `String.prototype.codePointAt` method\n  // https://tc39.github.io/ecma262/#sec-string.prototype.codepointat\n  codeAt: createMethod(false),\n  // `String.prototype.at` method\n  // https://github.com/mathiasbynens/String.prototype.at\n  charAt: createMethod(true)\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/string-multibyte.js?");
@@ -1771,7 +1648,6 @@ eval("var toInteger = __webpack_require__(/*! ../internals/to-integer */ \"./nod
   \*****************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 5:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("// https://github.com/zloirock/core-js/issues/280\nvar userAgent = __webpack_require__(/*! ../internals/engine-user-agent */ \"./node_modules/core-js/internals/engine-user-agent.js\");\n\n// eslint-disable-next-line unicorn/no-unsafe-regex\nmodule.exports = /Version\\/10\\.\\d+(\\.\\d+)?( Mobile\\/\\w+)? Safari\\//.test(userAgent);\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/string-pad-webkit-bug.js?");
@@ -1784,7 +1660,6 @@ eval("// https://github.com/zloirock/core-js/issues/280\nvar userAgent = __webpa
   \******************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 24:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("// https://github.com/tc39/proposal-string-pad-start-end\nvar toLength = __webpack_require__(/*! ../internals/to-length */ \"./node_modules/core-js/internals/to-length.js\");\nvar repeat = __webpack_require__(/*! ../internals/string-repeat */ \"./node_modules/core-js/internals/string-repeat.js\");\nvar requireObjectCoercible = __webpack_require__(/*! ../internals/require-object-coercible */ \"./node_modules/core-js/internals/require-object-coercible.js\");\n\nvar ceil = Math.ceil;\n\n// `String.prototype.{ padStart, padEnd }` methods implementation\nvar createMethod = function (IS_END) {\n  return function ($this, maxLength, fillString) {\n    var S = String(requireObjectCoercible($this));\n    var stringLength = S.length;\n    var fillStr = fillString === undefined ? ' ' : String(fillString);\n    var intMaxLength = toLength(maxLength);\n    var fillLen, stringFiller;\n    if (intMaxLength <= stringLength || fillStr == '') return S;\n    fillLen = intMaxLength - stringLength;\n    stringFiller = repeat.call(fillStr, ceil(fillLen / fillStr.length));\n    if (stringFiller.length > fillLen) stringFiller = stringFiller.slice(0, fillLen);\n    return IS_END ? S + stringFiller : stringFiller + S;\n  };\n};\n\nmodule.exports = {\n  // `String.prototype.padStart` method\n  // https://tc39.github.io/ecma262/#sec-string.prototype.padstart\n  start: createMethod(false),\n  // `String.prototype.padEnd` method\n  // https://tc39.github.io/ecma262/#sec-string.prototype.padend\n  end: createMethod(true)\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/string-pad.js?");
@@ -1797,7 +1672,6 @@ eval("// https://github.com/tc39/proposal-string-pad-start-end\nvar toLength = _
   \********************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module */
-/*! CommonJS bailout: module.exports is used directly at 159:0-14 */
 /***/ (function(module) {
 
 "use strict";
@@ -1811,7 +1685,6 @@ eval("\n// based on https://github.com/bestiejs/punycode.js/blob/master/punycode
   \*********************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 7:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -1825,7 +1698,6 @@ eval("\nvar toInteger = __webpack_require__(/*! ../internals/to-integer */ \"./n
   \**************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 8:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var fails = __webpack_require__(/*! ../internals/fails */ \"./node_modules/core-js/internals/fails.js\");\nvar whitespaces = __webpack_require__(/*! ../internals/whitespaces */ \"./node_modules/core-js/internals/whitespaces.js\");\n\nvar non = '\\u200B\\u0085\\u180E';\n\n// check that a method works with the correct list\n// of whitespaces and has a correct name\nmodule.exports = function (METHOD_NAME) {\n  return fails(function () {\n    return !!whitespaces[METHOD_NAME]() || non[METHOD_NAME]() != non || whitespaces[METHOD_NAME].name !== METHOD_NAME;\n  });\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/string-trim-forced.js?");
@@ -1838,7 +1710,6 @@ eval("var fails = __webpack_require__(/*! ../internals/fails */ \"./node_modules
   \*******************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 18:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var requireObjectCoercible = __webpack_require__(/*! ../internals/require-object-coercible */ \"./node_modules/core-js/internals/require-object-coercible.js\");\nvar whitespaces = __webpack_require__(/*! ../internals/whitespaces */ \"./node_modules/core-js/internals/whitespaces.js\");\n\nvar whitespace = '[' + whitespaces + ']';\nvar ltrim = RegExp('^' + whitespace + whitespace + '*');\nvar rtrim = RegExp(whitespace + whitespace + '*$');\n\n// `String.prototype.{ trim, trimStart, trimEnd, trimLeft, trimRight }` methods implementation\nvar createMethod = function (TYPE) {\n  return function ($this) {\n    var string = String(requireObjectCoercible($this));\n    if (TYPE & 1) string = string.replace(ltrim, '');\n    if (TYPE & 2) string = string.replace(rtrim, '');\n    return string;\n  };\n};\n\nmodule.exports = {\n  // `String.prototype.{ trimLeft, trimStart }` methods\n  // https://tc39.github.io/ecma262/#sec-string.prototype.trimstart\n  start: createMethod(1),\n  // `String.prototype.{ trimRight, trimEnd }` methods\n  // https://tc39.github.io/ecma262/#sec-string.prototype.trimend\n  end: createMethod(2),\n  // `String.prototype.trim` method\n  // https://tc39.github.io/ecma262/#sec-string.prototype.trim\n  trim: createMethod(3)\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/string-trim.js?");
@@ -1851,7 +1722,6 @@ eval("var requireObjectCoercible = __webpack_require__(/*! ../internals/require-
   \************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 104:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var global = __webpack_require__(/*! ../internals/global */ \"./node_modules/core-js/internals/global.js\");\nvar fails = __webpack_require__(/*! ../internals/fails */ \"./node_modules/core-js/internals/fails.js\");\nvar classof = __webpack_require__(/*! ../internals/classof-raw */ \"./node_modules/core-js/internals/classof-raw.js\");\nvar bind = __webpack_require__(/*! ../internals/function-bind-context */ \"./node_modules/core-js/internals/function-bind-context.js\");\nvar html = __webpack_require__(/*! ../internals/html */ \"./node_modules/core-js/internals/html.js\");\nvar createElement = __webpack_require__(/*! ../internals/document-create-element */ \"./node_modules/core-js/internals/document-create-element.js\");\nvar IS_IOS = __webpack_require__(/*! ../internals/engine-is-ios */ \"./node_modules/core-js/internals/engine-is-ios.js\");\n\nvar location = global.location;\nvar set = global.setImmediate;\nvar clear = global.clearImmediate;\nvar process = global.process;\nvar MessageChannel = global.MessageChannel;\nvar Dispatch = global.Dispatch;\nvar counter = 0;\nvar queue = {};\nvar ONREADYSTATECHANGE = 'onreadystatechange';\nvar defer, channel, port;\n\nvar run = function (id) {\n  // eslint-disable-next-line no-prototype-builtins\n  if (queue.hasOwnProperty(id)) {\n    var fn = queue[id];\n    delete queue[id];\n    fn();\n  }\n};\n\nvar runner = function (id) {\n  return function () {\n    run(id);\n  };\n};\n\nvar listener = function (event) {\n  run(event.data);\n};\n\nvar post = function (id) {\n  // old engines have not location.origin\n  global.postMessage(id + '', location.protocol + '//' + location.host);\n};\n\n// Node.js 0.9+ & IE10+ has setImmediate, otherwise:\nif (!set || !clear) {\n  set = function setImmediate(fn) {\n    var args = [];\n    var i = 1;\n    while (arguments.length > i) args.push(arguments[i++]);\n    queue[++counter] = function () {\n      // eslint-disable-next-line no-new-func\n      (typeof fn == 'function' ? fn : Function(fn)).apply(undefined, args);\n    };\n    defer(counter);\n    return counter;\n  };\n  clear = function clearImmediate(id) {\n    delete queue[id];\n  };\n  // Node.js 0.8-\n  if (classof(process) == 'process') {\n    defer = function (id) {\n      process.nextTick(runner(id));\n    };\n  // Sphere (JS game engine) Dispatch API\n  } else if (Dispatch && Dispatch.now) {\n    defer = function (id) {\n      Dispatch.now(runner(id));\n    };\n  // Browsers with MessageChannel, includes WebWorkers\n  // except iOS - https://github.com/zloirock/core-js/issues/624\n  } else if (MessageChannel && !IS_IOS) {\n    channel = new MessageChannel();\n    port = channel.port2;\n    channel.port1.onmessage = listener;\n    defer = bind(port.postMessage, port, 1);\n  // Browsers with postMessage, skip WebWorkers\n  // IE8 has postMessage, but it's sync & typeof its postMessage is 'object'\n  } else if (\n    global.addEventListener &&\n    typeof postMessage == 'function' &&\n    !global.importScripts &&\n    !fails(post) &&\n    location.protocol !== 'file:'\n  ) {\n    defer = post;\n    global.addEventListener('message', listener, false);\n  // IE8-\n  } else if (ONREADYSTATECHANGE in createElement('script')) {\n    defer = function (id) {\n      html.appendChild(createElement('script'))[ONREADYSTATECHANGE] = function () {\n        html.removeChild(this);\n        run(id);\n      };\n    };\n  // Rest old browsers\n  } else {\n    defer = function (id) {\n      setTimeout(runner(id), 0);\n    };\n  }\n}\n\nmodule.exports = {\n  set: set,\n  clear: clear\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/task.js?");
@@ -1864,7 +1734,6 @@ eval("var global = __webpack_require__(/*! ../internals/global */ \"./node_modul
   \*************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 5:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var classof = __webpack_require__(/*! ../internals/classof-raw */ \"./node_modules/core-js/internals/classof-raw.js\");\n\n// `thisNumberValue` abstract operation\n// https://tc39.github.io/ecma262/#sec-thisnumbervalue\nmodule.exports = function (value) {\n  if (typeof value != 'number' && classof(value) != 'Number') {\n    throw TypeError('Incorrect invocation');\n  }\n  return +value;\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/this-number-value.js?");
@@ -1877,7 +1746,6 @@ eval("var classof = __webpack_require__(/*! ../internals/classof-raw */ \"./node
   \*************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 9:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var toInteger = __webpack_require__(/*! ../internals/to-integer */ \"./node_modules/core-js/internals/to-integer.js\");\n\nvar max = Math.max;\nvar min = Math.min;\n\n// Helper for a popular repeating case of the spec:\n// Let integer be ? ToInteger(index).\n// If integer < 0, let result be max((length + integer), 0); else let result be min(integer, length).\nmodule.exports = function (index, length) {\n  var integer = toInteger(index);\n  return integer < 0 ? max(integer + length, 0) : min(integer, length);\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/to-absolute-index.js?");
@@ -1890,7 +1758,6 @@ eval("var toInteger = __webpack_require__(/*! ../internals/to-integer */ \"./nod
   \****************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 6:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var toInteger = __webpack_require__(/*! ../internals/to-integer */ \"./node_modules/core-js/internals/to-integer.js\");\nvar toLength = __webpack_require__(/*! ../internals/to-length */ \"./node_modules/core-js/internals/to-length.js\");\n\n// `ToIndex` abstract operation\n// https://tc39.github.io/ecma262/#sec-toindex\nmodule.exports = function (it) {\n  if (it === undefined) return 0;\n  var number = toInteger(it);\n  var length = toLength(number);\n  if (number !== length) throw RangeError('Wrong length or index');\n  return length;\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/to-index.js?");
@@ -1903,7 +1770,6 @@ eval("var toInteger = __webpack_require__(/*! ../internals/to-integer */ \"./nod
   \*************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 5:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("// toObject with fallback for non-array-like ES3 strings\nvar IndexedObject = __webpack_require__(/*! ../internals/indexed-object */ \"./node_modules/core-js/internals/indexed-object.js\");\nvar requireObjectCoercible = __webpack_require__(/*! ../internals/require-object-coercible */ \"./node_modules/core-js/internals/require-object-coercible.js\");\n\nmodule.exports = function (it) {\n  return IndexedObject(requireObjectCoercible(it));\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/to-indexed-object.js?");
@@ -1916,7 +1782,6 @@ eval("// toObject with fallback for non-array-like ES3 strings\nvar IndexedObjec
   \******************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module */
-/*! CommonJS bailout: module.exports is used directly at 6:0-14 */
 /***/ (function(module) {
 
 eval("var ceil = Math.ceil;\nvar floor = Math.floor;\n\n// `ToInteger` abstract operation\n// https://tc39.github.io/ecma262/#sec-tointeger\nmodule.exports = function (argument) {\n  return isNaN(argument = +argument) ? 0 : (argument > 0 ? floor : ceil)(argument);\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/to-integer.js?");
@@ -1929,7 +1794,6 @@ eval("var ceil = Math.ceil;\nvar floor = Math.floor;\n\n// `ToInteger` abstract 
   \*****************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 7:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var toInteger = __webpack_require__(/*! ../internals/to-integer */ \"./node_modules/core-js/internals/to-integer.js\");\n\nvar min = Math.min;\n\n// `ToLength` abstract operation\n// https://tc39.github.io/ecma262/#sec-tolength\nmodule.exports = function (argument) {\n  return argument > 0 ? min(toInteger(argument), 0x1FFFFFFFFFFFFF) : 0; // 2 ** 53 - 1 == 9007199254740991\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/to-length.js?");
@@ -1942,7 +1806,6 @@ eval("var toInteger = __webpack_require__(/*! ../internals/to-integer */ \"./nod
   \*****************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 5:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var requireObjectCoercible = __webpack_require__(/*! ../internals/require-object-coercible */ \"./node_modules/core-js/internals/require-object-coercible.js\");\n\n// `ToObject` abstract operation\n// https://tc39.github.io/ecma262/#sec-toobject\nmodule.exports = function (argument) {\n  return Object(requireObjectCoercible(argument));\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/to-object.js?");
@@ -1955,7 +1818,6 @@ eval("var requireObjectCoercible = __webpack_require__(/*! ../internals/require-
   \*****************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 3:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var toPositiveInteger = __webpack_require__(/*! ../internals/to-positive-integer */ \"./node_modules/core-js/internals/to-positive-integer.js\");\n\nmodule.exports = function (it, BYTES) {\n  var offset = toPositiveInteger(it);\n  if (offset % BYTES) throw RangeError('Wrong offset');\n  return offset;\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/to-offset.js?");
@@ -1968,7 +1830,6 @@ eval("var toPositiveInteger = __webpack_require__(/*! ../internals/to-positive-i
   \***************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 3:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var toInteger = __webpack_require__(/*! ../internals/to-integer */ \"./node_modules/core-js/internals/to-integer.js\");\n\nmodule.exports = function (it) {\n  var result = toInteger(it);\n  if (result < 0) throw RangeError(\"The argument can't be less than 0\");\n  return result;\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/to-positive-integer.js?");
@@ -1981,7 +1842,6 @@ eval("var toInteger = __webpack_require__(/*! ../internals/to-integer */ \"./nod
   \********************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 7:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var isObject = __webpack_require__(/*! ../internals/is-object */ \"./node_modules/core-js/internals/is-object.js\");\n\n// `ToPrimitive` abstract operation\n// https://tc39.github.io/ecma262/#sec-toprimitive\n// instead of the ES6 spec version, we didn't implement @@toPrimitive case\n// and the second argument - flag - preferred type is a string\nmodule.exports = function (input, PREFERRED_STRING) {\n  if (!isObject(input)) return input;\n  var fn, val;\n  if (PREFERRED_STRING && typeof (fn = input.toString) == 'function' && !isObject(val = fn.call(input))) return val;\n  if (typeof (fn = input.valueOf) == 'function' && !isObject(val = fn.call(input))) return val;\n  if (!PREFERRED_STRING && typeof (fn = input.toString) == 'function' && !isObject(val = fn.call(input))) return val;\n  throw TypeError(\"Can't convert object to primitive value\");\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/to-primitive.js?");
@@ -1994,7 +1854,6 @@ eval("var isObject = __webpack_require__(/*! ../internals/is-object */ \"./node_
   \*****************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 8:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var wellKnownSymbol = __webpack_require__(/*! ../internals/well-known-symbol */ \"./node_modules/core-js/internals/well-known-symbol.js\");\n\nvar TO_STRING_TAG = wellKnownSymbol('toStringTag');\nvar test = {};\n\ntest[TO_STRING_TAG] = 'z';\n\nmodule.exports = String(test) === '[object z]';\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/to-string-tag-support.js?");
@@ -2007,8 +1866,6 @@ eval("var wellKnownSymbol = __webpack_require__(/*! ../internals/well-known-symb
   \*******************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: __webpack_require__, module */
-/*! CommonJS bailout: module.exports is used directly at 109:2-16 */
-/*! CommonJS bailout: module.exports is used directly at 230:7-21 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -2022,7 +1879,6 @@ eval("\nvar $ = __webpack_require__(/*! ../internals/export */ \"./node_modules/
   \*************************************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: __webpack_require__, module */
-/*! CommonJS bailout: module.exports is used directly at 10:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("/* eslint-disable no-new */\nvar global = __webpack_require__(/*! ../internals/global */ \"./node_modules/core-js/internals/global.js\");\nvar fails = __webpack_require__(/*! ../internals/fails */ \"./node_modules/core-js/internals/fails.js\");\nvar checkCorrectnessOfIteration = __webpack_require__(/*! ../internals/check-correctness-of-iteration */ \"./node_modules/core-js/internals/check-correctness-of-iteration.js\");\nvar NATIVE_ARRAY_BUFFER_VIEWS = __webpack_require__(/*! ../internals/array-buffer-view-core */ \"./node_modules/core-js/internals/array-buffer-view-core.js\").NATIVE_ARRAY_BUFFER_VIEWS;\n\nvar ArrayBuffer = global.ArrayBuffer;\nvar Int8Array = global.Int8Array;\n\nmodule.exports = !NATIVE_ARRAY_BUFFER_VIEWS || !fails(function () {\n  Int8Array(1);\n}) || !fails(function () {\n  new Int8Array(-1);\n}) || !checkCorrectnessOfIteration(function (iterable) {\n  new Int8Array();\n  new Int8Array(null);\n  new Int8Array(1.5);\n  new Int8Array(iterable);\n}, true) || fails(function () {\n  // Safari (11+) bug - a reason why even Safari 13 should load a typed array polyfill\n  return new Int8Array(new ArrayBuffer(2), 1, undefined).length !== 1;\n});\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/typed-array-constructors-require-wrappers.js?");
@@ -2035,7 +1891,6 @@ eval("/* eslint-disable no-new */\nvar global = __webpack_require__(/*! ../inter
   \************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: __webpack_require__, module */
-/*! CommonJS bailout: module.exports is used directly at 8:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var toObject = __webpack_require__(/*! ../internals/to-object */ \"./node_modules/core-js/internals/to-object.js\");\nvar toLength = __webpack_require__(/*! ../internals/to-length */ \"./node_modules/core-js/internals/to-length.js\");\nvar getIteratorMethod = __webpack_require__(/*! ../internals/get-iterator-method */ \"./node_modules/core-js/internals/get-iterator-method.js\");\nvar isArrayIteratorMethod = __webpack_require__(/*! ../internals/is-array-iterator-method */ \"./node_modules/core-js/internals/is-array-iterator-method.js\");\nvar bind = __webpack_require__(/*! ../internals/function-bind-context */ \"./node_modules/core-js/internals/function-bind-context.js\");\nvar aTypedArrayConstructor = __webpack_require__(/*! ../internals/array-buffer-view-core */ \"./node_modules/core-js/internals/array-buffer-view-core.js\").aTypedArrayConstructor;\n\nmodule.exports = function from(source /* , mapfn, thisArg */) {\n  var O = toObject(source);\n  var argumentsLength = arguments.length;\n  var mapfn = argumentsLength > 1 ? arguments[1] : undefined;\n  var mapping = mapfn !== undefined;\n  var iteratorMethod = getIteratorMethod(O);\n  var i, length, result, step, iterator, next;\n  if (iteratorMethod != undefined && !isArrayIteratorMethod(iteratorMethod)) {\n    iterator = iteratorMethod.call(O);\n    next = iterator.next;\n    O = [];\n    while (!(step = next.call(iterator)).done) {\n      O.push(step.value);\n    }\n  }\n  if (mapping && argumentsLength > 2) {\n    mapfn = bind(mapfn, arguments[2], 2);\n  }\n  length = toLength(O.length);\n  result = new (aTypedArrayConstructor(this))(length);\n  for (i = 0; length > i; i++) {\n    result[i] = mapping ? mapfn(O[i], i) : O[i];\n  }\n  return result;\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/typed-array-from.js?");
@@ -2048,7 +1903,6 @@ eval("var toObject = __webpack_require__(/*! ../internals/to-object */ \"./node_
   \***********************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module */
-/*! CommonJS bailout: module.exports is used directly at 4:0-14 */
 /***/ (function(module) {
 
 eval("var id = 0;\nvar postfix = Math.random();\n\nmodule.exports = function (key) {\n  return 'Symbol(' + String(key === undefined ? '' : key) + ')_' + (++id + postfix).toString(36);\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/uid.js?");
@@ -2061,7 +1915,6 @@ eval("var id = 0;\nvar postfix = Math.random();\n\nmodule.exports = function (ke
   \*************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 3:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var NATIVE_SYMBOL = __webpack_require__(/*! ../internals/native-symbol */ \"./node_modules/core-js/internals/native-symbol.js\");\n\nmodule.exports = NATIVE_SYMBOL\n  // eslint-disable-next-line no-undef\n  && !Symbol.sham\n  // eslint-disable-next-line no-undef\n  && typeof Symbol.iterator == 'symbol';\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/use-symbol-as-uid.js?");
@@ -2088,7 +1941,6 @@ eval("var wellKnownSymbol = __webpack_require__(/*! ../internals/well-known-symb
   \*************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 12:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("var global = __webpack_require__(/*! ../internals/global */ \"./node_modules/core-js/internals/global.js\");\nvar shared = __webpack_require__(/*! ../internals/shared */ \"./node_modules/core-js/internals/shared.js\");\nvar has = __webpack_require__(/*! ../internals/has */ \"./node_modules/core-js/internals/has.js\");\nvar uid = __webpack_require__(/*! ../internals/uid */ \"./node_modules/core-js/internals/uid.js\");\nvar NATIVE_SYMBOL = __webpack_require__(/*! ../internals/native-symbol */ \"./node_modules/core-js/internals/native-symbol.js\");\nvar USE_SYMBOL_AS_UID = __webpack_require__(/*! ../internals/use-symbol-as-uid */ \"./node_modules/core-js/internals/use-symbol-as-uid.js\");\n\nvar WellKnownSymbolsStore = shared('wks');\nvar Symbol = global.Symbol;\nvar createWellKnownSymbol = USE_SYMBOL_AS_UID ? Symbol : Symbol && Symbol.withoutSetter || uid;\n\nmodule.exports = function (name) {\n  if (!has(WellKnownSymbolsStore, name)) {\n    if (NATIVE_SYMBOL && has(Symbol, name)) WellKnownSymbolsStore[name] = Symbol[name];\n    else WellKnownSymbolsStore[name] = createWellKnownSymbol('Symbol.' + name);\n  } return WellKnownSymbolsStore[name];\n};\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/well-known-symbol.js?");
@@ -2101,7 +1953,6 @@ eval("var global = __webpack_require__(/*! ../internals/global */ \"./node_modul
   \*******************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module */
-/*! CommonJS bailout: module.exports is used directly at 3:0-14 */
 /***/ (function(module) {
 
 eval("// a string of all valid unicode whitespaces\n// eslint-disable-next-line max-len\nmodule.exports = '\\u0009\\u000A\\u000B\\u000C\\u000D\\u0020\\u00A0\\u1680\\u2000\\u2001\\u2002\\u2003\\u2004\\u2005\\u2006\\u2007\\u2008\\u2009\\u200A\\u202F\\u205F\\u3000\\u2028\\u2029\\uFEFF';\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/internals/whitespaces.js?");
@@ -2330,7 +2181,6 @@ eval("var $ = __webpack_require__(/*! ../internals/export */ \"./node_modules/co
   \***********************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 22:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -2668,7 +2518,6 @@ eval("var global = __webpack_require__(/*! ../internals/global */ \"./node_modul
   \************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 7:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -3643,7 +3492,6 @@ eval("\nvar redefine = __webpack_require__(/*! ../internals/redefine */ \"./node
   \************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 7:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -4672,7 +4520,6 @@ eval("var createTypedArrayConstructor = __webpack_require__(/*! ../internals/typ
   \*****************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: __webpack_require__, module */
-/*! CommonJS bailout: module.exports is used directly at 23:15-29 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -4759,7 +4606,6 @@ eval("var $ = __webpack_require__(/*! ../internals/export */ \"./node_modules/co
   \***************************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 344:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 "use strict";
@@ -4799,7 +4645,6 @@ eval("\nvar $ = __webpack_require__(/*! ../internals/export */ \"./node_modules/
   \**********************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 5:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("__webpack_require__(/*! ../es */ \"./node_modules/core-js/es/index.js\");\n__webpack_require__(/*! ../web */ \"./node_modules/core-js/web/index.js\");\nvar path = __webpack_require__(/*! ../internals/path */ \"./node_modules/core-js/internals/path.js\");\n\nmodule.exports = path;\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/stable/index.js?");
@@ -4812,7 +4657,6 @@ eval("__webpack_require__(/*! ../es */ \"./node_modules/core-js/es/index.js\");\
   \*******************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module, __webpack_require__ */
-/*! CommonJS bailout: module.exports is used directly at 11:0-14 */
 /***/ (function(module, __unused_webpack_exports, __webpack_require__) {
 
 eval("__webpack_require__(/*! ../modules/web.dom-collections.for-each */ \"./node_modules/core-js/modules/web.dom-collections.for-each.js\");\n__webpack_require__(/*! ../modules/web.dom-collections.iterator */ \"./node_modules/core-js/modules/web.dom-collections.iterator.js\");\n__webpack_require__(/*! ../modules/web.immediate */ \"./node_modules/core-js/modules/web.immediate.js\");\n__webpack_require__(/*! ../modules/web.queue-microtask */ \"./node_modules/core-js/modules/web.queue-microtask.js\");\n__webpack_require__(/*! ../modules/web.timers */ \"./node_modules/core-js/modules/web.timers.js\");\n__webpack_require__(/*! ../modules/web.url */ \"./node_modules/core-js/modules/web.url.js\");\n__webpack_require__(/*! ../modules/web.url.to-json */ \"./node_modules/core-js/modules/web.url.to-json.js\");\n__webpack_require__(/*! ../modules/web.url-search-params */ \"./node_modules/core-js/modules/web.url-search-params.js\");\nvar path = __webpack_require__(/*! ../internals/path */ \"./node_modules/core-js/internals/path.js\");\n\nmodule.exports = path;\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/core-js/web/index.js?");
@@ -4825,7 +4669,6 @@ eval("__webpack_require__(/*! ../modules/web.dom-collections.for-each */ \"./nod
   \*****************************************************/
 /*! unknown exports (runtime-defined) */
 /*! runtime requirements: module */
-/*! CommonJS bailout: module.exports is used directly at 732:31-45 */
 /***/ (function(module) {
 
 eval("/**\n * Copyright (c) 2014-present, Facebook, Inc.\n *\n * This source code is licensed under the MIT license found in the\n * LICENSE file in the root directory of this source tree.\n */\n\nvar runtime = (function (exports) {\n  \"use strict\";\n\n  var Op = Object.prototype;\n  var hasOwn = Op.hasOwnProperty;\n  var undefined; // More compressible than void 0.\n  var $Symbol = typeof Symbol === \"function\" ? Symbol : {};\n  var iteratorSymbol = $Symbol.iterator || \"@@iterator\";\n  var asyncIteratorSymbol = $Symbol.asyncIterator || \"@@asyncIterator\";\n  var toStringTagSymbol = $Symbol.toStringTag || \"@@toStringTag\";\n\n  function define(obj, key, value) {\n    Object.defineProperty(obj, key, {\n      value: value,\n      enumerable: true,\n      configurable: true,\n      writable: true\n    });\n    return obj[key];\n  }\n  try {\n    // IE 8 has a broken Object.defineProperty that only works on DOM objects.\n    define({}, \"\");\n  } catch (err) {\n    define = function(obj, key, value) {\n      return obj[key] = value;\n    };\n  }\n\n  function wrap(innerFn, outerFn, self, tryLocsList) {\n    // If outerFn provided and outerFn.prototype is a Generator, then outerFn.prototype instanceof Generator.\n    var protoGenerator = outerFn && outerFn.prototype instanceof Generator ? outerFn : Generator;\n    var generator = Object.create(protoGenerator.prototype);\n    var context = new Context(tryLocsList || []);\n\n    // The ._invoke method unifies the implementations of the .next,\n    // .throw, and .return methods.\n    generator._invoke = makeInvokeMethod(innerFn, self, context);\n\n    return generator;\n  }\n  exports.wrap = wrap;\n\n  // Try/catch helper to minimize deoptimizations. Returns a completion\n  // record like context.tryEntries[i].completion. This interface could\n  // have been (and was previously) designed to take a closure to be\n  // invoked without arguments, but in all the cases we care about we\n  // already have an existing method we want to call, so there's no need\n  // to create a new function object. We can even get away with assuming\n  // the method takes exactly one argument, since that happens to be true\n  // in every case, so we don't have to touch the arguments object. The\n  // only additional allocation required is the completion record, which\n  // has a stable shape and so hopefully should be cheap to allocate.\n  function tryCatch(fn, obj, arg) {\n    try {\n      return { type: \"normal\", arg: fn.call(obj, arg) };\n    } catch (err) {\n      return { type: \"throw\", arg: err };\n    }\n  }\n\n  var GenStateSuspendedStart = \"suspendedStart\";\n  var GenStateSuspendedYield = \"suspendedYield\";\n  var GenStateExecuting = \"executing\";\n  var GenStateCompleted = \"completed\";\n\n  // Returning this object from the innerFn has the same effect as\n  // breaking out of the dispatch switch statement.\n  var ContinueSentinel = {};\n\n  // Dummy constructor functions that we use as the .constructor and\n  // .constructor.prototype properties for functions that return Generator\n  // objects. For full spec compliance, you may wish to configure your\n  // minifier not to mangle the names of these two functions.\n  function Generator() {}\n  function GeneratorFunction() {}\n  function GeneratorFunctionPrototype() {}\n\n  // This is a polyfill for %IteratorPrototype% for environments that\n  // don't natively support it.\n  var IteratorPrototype = {};\n  IteratorPrototype[iteratorSymbol] = function () {\n    return this;\n  };\n\n  var getProto = Object.getPrototypeOf;\n  var NativeIteratorPrototype = getProto && getProto(getProto(values([])));\n  if (NativeIteratorPrototype &&\n      NativeIteratorPrototype !== Op &&\n      hasOwn.call(NativeIteratorPrototype, iteratorSymbol)) {\n    // This environment has a native %IteratorPrototype%; use it instead\n    // of the polyfill.\n    IteratorPrototype = NativeIteratorPrototype;\n  }\n\n  var Gp = GeneratorFunctionPrototype.prototype =\n    Generator.prototype = Object.create(IteratorPrototype);\n  GeneratorFunction.prototype = Gp.constructor = GeneratorFunctionPrototype;\n  GeneratorFunctionPrototype.constructor = GeneratorFunction;\n  GeneratorFunction.displayName = define(\n    GeneratorFunctionPrototype,\n    toStringTagSymbol,\n    \"GeneratorFunction\"\n  );\n\n  // Helper for defining the .next, .throw, and .return methods of the\n  // Iterator interface in terms of a single ._invoke method.\n  function defineIteratorMethods(prototype) {\n    [\"next\", \"throw\", \"return\"].forEach(function(method) {\n      define(prototype, method, function(arg) {\n        return this._invoke(method, arg);\n      });\n    });\n  }\n\n  exports.isGeneratorFunction = function(genFun) {\n    var ctor = typeof genFun === \"function\" && genFun.constructor;\n    return ctor\n      ? ctor === GeneratorFunction ||\n        // For the native GeneratorFunction constructor, the best we can\n        // do is to check its .name property.\n        (ctor.displayName || ctor.name) === \"GeneratorFunction\"\n      : false;\n  };\n\n  exports.mark = function(genFun) {\n    if (Object.setPrototypeOf) {\n      Object.setPrototypeOf(genFun, GeneratorFunctionPrototype);\n    } else {\n      genFun.__proto__ = GeneratorFunctionPrototype;\n      define(genFun, toStringTagSymbol, \"GeneratorFunction\");\n    }\n    genFun.prototype = Object.create(Gp);\n    return genFun;\n  };\n\n  // Within the body of any async function, `await x` is transformed to\n  // `yield regeneratorRuntime.awrap(x)`, so that the runtime can test\n  // `hasOwn.call(value, \"__await\")` to determine if the yielded value is\n  // meant to be awaited.\n  exports.awrap = function(arg) {\n    return { __await: arg };\n  };\n\n  function AsyncIterator(generator, PromiseImpl) {\n    function invoke(method, arg, resolve, reject) {\n      var record = tryCatch(generator[method], generator, arg);\n      if (record.type === \"throw\") {\n        reject(record.arg);\n      } else {\n        var result = record.arg;\n        var value = result.value;\n        if (value &&\n            typeof value === \"object\" &&\n            hasOwn.call(value, \"__await\")) {\n          return PromiseImpl.resolve(value.__await).then(function(value) {\n            invoke(\"next\", value, resolve, reject);\n          }, function(err) {\n            invoke(\"throw\", err, resolve, reject);\n          });\n        }\n\n        return PromiseImpl.resolve(value).then(function(unwrapped) {\n          // When a yielded Promise is resolved, its final value becomes\n          // the .value of the Promise<{value,done}> result for the\n          // current iteration.\n          result.value = unwrapped;\n          resolve(result);\n        }, function(error) {\n          // If a rejected Promise was yielded, throw the rejection back\n          // into the async generator function so it can be handled there.\n          return invoke(\"throw\", error, resolve, reject);\n        });\n      }\n    }\n\n    var previousPromise;\n\n    function enqueue(method, arg) {\n      function callInvokeWithMethodAndArg() {\n        return new PromiseImpl(function(resolve, reject) {\n          invoke(method, arg, resolve, reject);\n        });\n      }\n\n      return previousPromise =\n        // If enqueue has been called before, then we want to wait until\n        // all previous Promises have been resolved before calling invoke,\n        // so that results are always delivered in the correct order. If\n        // enqueue has not been called before, then it is important to\n        // call invoke immediately, without waiting on a callback to fire,\n        // so that the async generator function has the opportunity to do\n        // any necessary setup in a predictable way. This predictability\n        // is why the Promise constructor synchronously invokes its\n        // executor callback, and why async functions synchronously\n        // execute code before the first await. Since we implement simple\n        // async functions in terms of async generators, it is especially\n        // important to get this right, even though it requires care.\n        previousPromise ? previousPromise.then(\n          callInvokeWithMethodAndArg,\n          // Avoid propagating failures to Promises returned by later\n          // invocations of the iterator.\n          callInvokeWithMethodAndArg\n        ) : callInvokeWithMethodAndArg();\n    }\n\n    // Define the unified helper method that is used to implement .next,\n    // .throw, and .return (see defineIteratorMethods).\n    this._invoke = enqueue;\n  }\n\n  defineIteratorMethods(AsyncIterator.prototype);\n  AsyncIterator.prototype[asyncIteratorSymbol] = function () {\n    return this;\n  };\n  exports.AsyncIterator = AsyncIterator;\n\n  // Note that simple async functions are implemented on top of\n  // AsyncIterator objects; they just return a Promise for the value of\n  // the final result produced by the iterator.\n  exports.async = function(innerFn, outerFn, self, tryLocsList, PromiseImpl) {\n    if (PromiseImpl === void 0) PromiseImpl = Promise;\n\n    var iter = new AsyncIterator(\n      wrap(innerFn, outerFn, self, tryLocsList),\n      PromiseImpl\n    );\n\n    return exports.isGeneratorFunction(outerFn)\n      ? iter // If outerFn is a generator, return the full iterator.\n      : iter.next().then(function(result) {\n          return result.done ? result.value : iter.next();\n        });\n  };\n\n  function makeInvokeMethod(innerFn, self, context) {\n    var state = GenStateSuspendedStart;\n\n    return function invoke(method, arg) {\n      if (state === GenStateExecuting) {\n        throw new Error(\"Generator is already running\");\n      }\n\n      if (state === GenStateCompleted) {\n        if (method === \"throw\") {\n          throw arg;\n        }\n\n        // Be forgiving, per 25.3.3.3.3 of the spec:\n        // https://people.mozilla.org/~jorendorff/es6-draft.html#sec-generatorresume\n        return doneResult();\n      }\n\n      context.method = method;\n      context.arg = arg;\n\n      while (true) {\n        var delegate = context.delegate;\n        if (delegate) {\n          var delegateResult = maybeInvokeDelegate(delegate, context);\n          if (delegateResult) {\n            if (delegateResult === ContinueSentinel) continue;\n            return delegateResult;\n          }\n        }\n\n        if (context.method === \"next\") {\n          // Setting context._sent for legacy support of Babel's\n          // function.sent implementation.\n          context.sent = context._sent = context.arg;\n\n        } else if (context.method === \"throw\") {\n          if (state === GenStateSuspendedStart) {\n            state = GenStateCompleted;\n            throw context.arg;\n          }\n\n          context.dispatchException(context.arg);\n\n        } else if (context.method === \"return\") {\n          context.abrupt(\"return\", context.arg);\n        }\n\n        state = GenStateExecuting;\n\n        var record = tryCatch(innerFn, self, context);\n        if (record.type === \"normal\") {\n          // If an exception is thrown from innerFn, we leave state ===\n          // GenStateExecuting and loop back for another invocation.\n          state = context.done\n            ? GenStateCompleted\n            : GenStateSuspendedYield;\n\n          if (record.arg === ContinueSentinel) {\n            continue;\n          }\n\n          return {\n            value: record.arg,\n            done: context.done\n          };\n\n        } else if (record.type === \"throw\") {\n          state = GenStateCompleted;\n          // Dispatch the exception by looping back around to the\n          // context.dispatchException(context.arg) call above.\n          context.method = \"throw\";\n          context.arg = record.arg;\n        }\n      }\n    };\n  }\n\n  // Call delegate.iterator[context.method](context.arg) and handle the\n  // result, either by returning a { value, done } result from the\n  // delegate iterator, or by modifying context.method and context.arg,\n  // setting context.delegate to null, and returning the ContinueSentinel.\n  function maybeInvokeDelegate(delegate, context) {\n    var method = delegate.iterator[context.method];\n    if (method === undefined) {\n      // A .throw or .return when the delegate iterator has no .throw\n      // method always terminates the yield* loop.\n      context.delegate = null;\n\n      if (context.method === \"throw\") {\n        // Note: [\"return\"] must be used for ES3 parsing compatibility.\n        if (delegate.iterator[\"return\"]) {\n          // If the delegate iterator has a return method, give it a\n          // chance to clean up.\n          context.method = \"return\";\n          context.arg = undefined;\n          maybeInvokeDelegate(delegate, context);\n\n          if (context.method === \"throw\") {\n            // If maybeInvokeDelegate(context) changed context.method from\n            // \"return\" to \"throw\", let that override the TypeError below.\n            return ContinueSentinel;\n          }\n        }\n\n        context.method = \"throw\";\n        context.arg = new TypeError(\n          \"The iterator does not provide a 'throw' method\");\n      }\n\n      return ContinueSentinel;\n    }\n\n    var record = tryCatch(method, delegate.iterator, context.arg);\n\n    if (record.type === \"throw\") {\n      context.method = \"throw\";\n      context.arg = record.arg;\n      context.delegate = null;\n      return ContinueSentinel;\n    }\n\n    var info = record.arg;\n\n    if (! info) {\n      context.method = \"throw\";\n      context.arg = new TypeError(\"iterator result is not an object\");\n      context.delegate = null;\n      return ContinueSentinel;\n    }\n\n    if (info.done) {\n      // Assign the result of the finished delegate to the temporary\n      // variable specified by delegate.resultName (see delegateYield).\n      context[delegate.resultName] = info.value;\n\n      // Resume execution at the desired location (see delegateYield).\n      context.next = delegate.nextLoc;\n\n      // If context.method was \"throw\" but the delegate handled the\n      // exception, let the outer generator proceed normally. If\n      // context.method was \"next\", forget context.arg since it has been\n      // \"consumed\" by the delegate iterator. If context.method was\n      // \"return\", allow the original .return call to continue in the\n      // outer generator.\n      if (context.method !== \"return\") {\n        context.method = \"next\";\n        context.arg = undefined;\n      }\n\n    } else {\n      // Re-yield the result returned by the delegate method.\n      return info;\n    }\n\n    // The delegate iterator is finished, so forget it and continue with\n    // the outer generator.\n    context.delegate = null;\n    return ContinueSentinel;\n  }\n\n  // Define Generator.prototype.{next,throw,return} in terms of the\n  // unified ._invoke helper method.\n  defineIteratorMethods(Gp);\n\n  define(Gp, toStringTagSymbol, \"Generator\");\n\n  // A Generator should always return itself as the iterator object when the\n  // @@iterator function is called on it. Some browsers' implementations of the\n  // iterator prototype chain incorrectly implement this, causing the Generator\n  // object to not be returned from this call. This ensures that doesn't happen.\n  // See https://github.com/facebook/regenerator/issues/274 for more details.\n  Gp[iteratorSymbol] = function() {\n    return this;\n  };\n\n  Gp.toString = function() {\n    return \"[object Generator]\";\n  };\n\n  function pushTryEntry(locs) {\n    var entry = { tryLoc: locs[0] };\n\n    if (1 in locs) {\n      entry.catchLoc = locs[1];\n    }\n\n    if (2 in locs) {\n      entry.finallyLoc = locs[2];\n      entry.afterLoc = locs[3];\n    }\n\n    this.tryEntries.push(entry);\n  }\n\n  function resetTryEntry(entry) {\n    var record = entry.completion || {};\n    record.type = \"normal\";\n    delete record.arg;\n    entry.completion = record;\n  }\n\n  function Context(tryLocsList) {\n    // The root entry object (effectively a try statement without a catch\n    // or a finally block) gives us a place to store values thrown from\n    // locations where there is no enclosing try statement.\n    this.tryEntries = [{ tryLoc: \"root\" }];\n    tryLocsList.forEach(pushTryEntry, this);\n    this.reset(true);\n  }\n\n  exports.keys = function(object) {\n    var keys = [];\n    for (var key in object) {\n      keys.push(key);\n    }\n    keys.reverse();\n\n    // Rather than returning an object with a next method, we keep\n    // things simple and return the next function itself.\n    return function next() {\n      while (keys.length) {\n        var key = keys.pop();\n        if (key in object) {\n          next.value = key;\n          next.done = false;\n          return next;\n        }\n      }\n\n      // To avoid creating an additional object, we just hang the .value\n      // and .done properties off the next function object itself. This\n      // also ensures that the minifier will not anonymize the function.\n      next.done = true;\n      return next;\n    };\n  };\n\n  function values(iterable) {\n    if (iterable) {\n      var iteratorMethod = iterable[iteratorSymbol];\n      if (iteratorMethod) {\n        return iteratorMethod.call(iterable);\n      }\n\n      if (typeof iterable.next === \"function\") {\n        return iterable;\n      }\n\n      if (!isNaN(iterable.length)) {\n        var i = -1, next = function next() {\n          while (++i < iterable.length) {\n            if (hasOwn.call(iterable, i)) {\n              next.value = iterable[i];\n              next.done = false;\n              return next;\n            }\n          }\n\n          next.value = undefined;\n          next.done = true;\n\n          return next;\n        };\n\n        return next.next = next;\n      }\n    }\n\n    // Return an iterator with no values.\n    return { next: doneResult };\n  }\n  exports.values = values;\n\n  function doneResult() {\n    return { value: undefined, done: true };\n  }\n\n  Context.prototype = {\n    constructor: Context,\n\n    reset: function(skipTempReset) {\n      this.prev = 0;\n      this.next = 0;\n      // Resetting context._sent for legacy support of Babel's\n      // function.sent implementation.\n      this.sent = this._sent = undefined;\n      this.done = false;\n      this.delegate = null;\n\n      this.method = \"next\";\n      this.arg = undefined;\n\n      this.tryEntries.forEach(resetTryEntry);\n\n      if (!skipTempReset) {\n        for (var name in this) {\n          // Not sure about the optimal order of these conditions:\n          if (name.charAt(0) === \"t\" &&\n              hasOwn.call(this, name) &&\n              !isNaN(+name.slice(1))) {\n            this[name] = undefined;\n          }\n        }\n      }\n    },\n\n    stop: function() {\n      this.done = true;\n\n      var rootEntry = this.tryEntries[0];\n      var rootRecord = rootEntry.completion;\n      if (rootRecord.type === \"throw\") {\n        throw rootRecord.arg;\n      }\n\n      return this.rval;\n    },\n\n    dispatchException: function(exception) {\n      if (this.done) {\n        throw exception;\n      }\n\n      var context = this;\n      function handle(loc, caught) {\n        record.type = \"throw\";\n        record.arg = exception;\n        context.next = loc;\n\n        if (caught) {\n          // If the dispatched exception was caught by a catch block,\n          // then let that catch block handle the exception normally.\n          context.method = \"next\";\n          context.arg = undefined;\n        }\n\n        return !! caught;\n      }\n\n      for (var i = this.tryEntries.length - 1; i >= 0; --i) {\n        var entry = this.tryEntries[i];\n        var record = entry.completion;\n\n        if (entry.tryLoc === \"root\") {\n          // Exception thrown outside of any try block that could handle\n          // it, so set the completion value of the entire function to\n          // throw the exception.\n          return handle(\"end\");\n        }\n\n        if (entry.tryLoc <= this.prev) {\n          var hasCatch = hasOwn.call(entry, \"catchLoc\");\n          var hasFinally = hasOwn.call(entry, \"finallyLoc\");\n\n          if (hasCatch && hasFinally) {\n            if (this.prev < entry.catchLoc) {\n              return handle(entry.catchLoc, true);\n            } else if (this.prev < entry.finallyLoc) {\n              return handle(entry.finallyLoc);\n            }\n\n          } else if (hasCatch) {\n            if (this.prev < entry.catchLoc) {\n              return handle(entry.catchLoc, true);\n            }\n\n          } else if (hasFinally) {\n            if (this.prev < entry.finallyLoc) {\n              return handle(entry.finallyLoc);\n            }\n\n          } else {\n            throw new Error(\"try statement without catch or finally\");\n          }\n        }\n      }\n    },\n\n    abrupt: function(type, arg) {\n      for (var i = this.tryEntries.length - 1; i >= 0; --i) {\n        var entry = this.tryEntries[i];\n        if (entry.tryLoc <= this.prev &&\n            hasOwn.call(entry, \"finallyLoc\") &&\n            this.prev < entry.finallyLoc) {\n          var finallyEntry = entry;\n          break;\n        }\n      }\n\n      if (finallyEntry &&\n          (type === \"break\" ||\n           type === \"continue\") &&\n          finallyEntry.tryLoc <= arg &&\n          arg <= finallyEntry.finallyLoc) {\n        // Ignore the finally entry if control is not jumping to a\n        // location outside the try/catch block.\n        finallyEntry = null;\n      }\n\n      var record = finallyEntry ? finallyEntry.completion : {};\n      record.type = type;\n      record.arg = arg;\n\n      if (finallyEntry) {\n        this.method = \"next\";\n        this.next = finallyEntry.finallyLoc;\n        return ContinueSentinel;\n      }\n\n      return this.complete(record);\n    },\n\n    complete: function(record, afterLoc) {\n      if (record.type === \"throw\") {\n        throw record.arg;\n      }\n\n      if (record.type === \"break\" ||\n          record.type === \"continue\") {\n        this.next = record.arg;\n      } else if (record.type === \"return\") {\n        this.rval = this.arg = record.arg;\n        this.method = \"return\";\n        this.next = \"end\";\n      } else if (record.type === \"normal\" && afterLoc) {\n        this.next = afterLoc;\n      }\n\n      return ContinueSentinel;\n    },\n\n    finish: function(finallyLoc) {\n      for (var i = this.tryEntries.length - 1; i >= 0; --i) {\n        var entry = this.tryEntries[i];\n        if (entry.finallyLoc === finallyLoc) {\n          this.complete(entry.completion, entry.afterLoc);\n          resetTryEntry(entry);\n          return ContinueSentinel;\n        }\n      }\n    },\n\n    \"catch\": function(tryLoc) {\n      for (var i = this.tryEntries.length - 1; i >= 0; --i) {\n        var entry = this.tryEntries[i];\n        if (entry.tryLoc === tryLoc) {\n          var record = entry.completion;\n          if (record.type === \"throw\") {\n            var thrown = record.arg;\n            resetTryEntry(entry);\n          }\n          return thrown;\n        }\n      }\n\n      // The context.catch method must only be called with a location\n      // argument that corresponds to a known catch block.\n      throw new Error(\"illegal catch attempt\");\n    },\n\n    delegateYield: function(iterable, resultName, nextLoc) {\n      this.delegate = {\n        iterator: values(iterable),\n        resultName: resultName,\n        nextLoc: nextLoc\n      };\n\n      if (this.method === \"next\") {\n        // Deliberately forget the last sent value so that we don't\n        // accidentally pass it on to the delegate.\n        this.arg = undefined;\n      }\n\n      return ContinueSentinel;\n    }\n  };\n\n  // Regardless of whether this script is executing as a CommonJS module\n  // or not, return the runtime object so that we can declare the variable\n  // regeneratorRuntime in the outer scope, which allows this module to be\n  // injected easily by `bin/regenerator --include-runtime script.js`.\n  return exports;\n\n}(\n  // If this script is executing as a CommonJS module, use module.exports\n  // as the regeneratorRuntime namespace. Otherwise create a new empty\n  // object. Either way, the resulting object will be used to initialize\n  // the regeneratorRuntime variable at the top of this file.\n   true ? module.exports : 0\n));\n\ntry {\n  regeneratorRuntime = runtime;\n} catch (accidentalStrictMode) {\n  // This module should not be running in strict mode, so the above\n  // assignment should always work unless something is misconfigured. Just\n  // in case runtime.js accidentally runs in strict mode, we can escape\n  // strict mode using a global Function call. This could conceivably fail\n  // if a Content Security Policy forbids using Function, but in that case\n  // the proper solution is to fix the accidental strict mode problem. If\n  // you've misconfigured your bundler to force strict mode and applied a\n  // CSP to forbid Function, and you're not willing to fix either of those\n  // problems, please detail your unique predicament in a GitHub issue.\n  Function(\"r\", \"regeneratorRuntime = r\")(runtime);\n}\n\n\n//# sourceURL=webpack://beginner2020/./node_modules/regenerator-runtime/runtime.js?");
